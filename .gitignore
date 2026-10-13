@@ -19,3 +19,7 @@ Desktop.ini
 # 性能测试的临时输出
 bench/*.tmp
 bench/results/
+
+# 我自己用的临时文件（生成提交信息用）
+.tmp-*
+*.tmp
