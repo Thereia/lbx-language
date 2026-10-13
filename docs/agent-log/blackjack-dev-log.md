@@ -3,6 +3,8 @@
 > `java -cp build lbx.Main ...`。整理之后源码在 `src\main\java\lbx\`、产物在 `target\classes\`，
 > 等价的命令是 `mvn -o -q compile` 与 `java -cp target\classes lbx.Main ...`。
 > 保留原文是为了让这份记录保持"一手证据"，不被事后改写。
+> 另外，这之后 `apps/` 与 `examples/`、`bench/` 合并成了 `samples/`（应用在 `samples/app/blackjack.lbx`），
+> 黑盒测试集也从 `tests/` 移到 `src/test/resources/lbx/`，同理不改本文正文。
 # blackjack.lbx 开发记录（LBX 命令行小游戏）
 
 - 交付物：`apps/blackjack.lbx`

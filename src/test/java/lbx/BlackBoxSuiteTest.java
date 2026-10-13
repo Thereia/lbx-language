@@ -14,11 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 把整份黑盒测试集（tests/ 下的 .lbx 与 .expected）接入 {@code mvn test}：
+ * 把整份黑盒测试集（src/test/resources/lbx/ 下的 .lbx 与 .expected）接入 {@code mvn test}：
  * 本测试只是调用 {@link TestRunner#runAll}，所以「一条命令跑完所有测试」在 Maven 下同样成立。
  *
  * 注意两个路径都要显式算出来：
- *   - 测试数据在项目根目录的 tests/（surefire 会把 basedir 设为项目根）；
+ *   - 测试数据在项目根目录的 src/test/resources/lbx/（surefire 会把 basedir 设为项目根）；
  *   - 子进程的 classpath 必须显式给 target/classes —— surefire 运行时
  *     {@code java.class.path} 里只有它自己的 booter，拿不到本项目的 classes。
  */
@@ -27,7 +27,7 @@ class BlackBoxSuiteTest {
     @Test
     void 黑盒测试集全绿且用例数达标() throws Exception {
         Path base = Path.of(System.getProperty("basedir", System.getProperty("user.dir")));
-        Path testsDir = base.resolve("tests");
+        Path testsDir = base.resolve("src/test/resources/lbx");
         assertTrue(Files.isDirectory(testsDir), "找不到黑盒测试目录：" + testsDir);
         String childClasspath = base.resolve("target").resolve("classes").toString();
 

@@ -19,14 +19,14 @@
 ```bat
 mvn -o -q compile
 
-java -cp target\classes lbx.Main bench\fib.lbx
-python bench\fib.py
+java -cp target\classes lbx.Main samples\bench\fib.lbx
+python samples\bench\fib.py
 
-java -cp target\classes lbx.Main bench\loop.lbx
-python bench\loop.py
+java -cp target\classes lbx.Main samples\bench\loop.lbx
+python samples\bench\loop.py
 
-java -cp target\classes lbx.Main bench\sort.lbx
-python bench\sort.py
+java -cp target\classes lbx.Main samples\bench\sort.lbx
+python samples\bench\sort.py
 ```
 
 ## 计时并核对两边结果一致
@@ -34,8 +34,8 @@ python bench\sort.py
 ```powershell
 $sw = [System.Diagnostics.Stopwatch]::new()
 foreach ($name in @('fib','loop','sort')) {
-    foreach ($pair in @(@('LBX', 'java', @('-cp','target\classes','lbx.Main',"bench/$name.lbx")),
-                        @('Python', 'python', @("bench/$name.py")))) {
+    foreach ($pair in @(@('LBX', 'java', @('-cp','target\classes','lbx.Main',"samples/bench/$name.lbx")),
+                        @('Python', 'python', @("samples/bench/$name.py")))) {
         $label = $pair[0]; $exe = $pair[1]; $argList = $pair[2]
         $best = [double]::MaxValue; $out = ''
         foreach ($i in 1..3) {

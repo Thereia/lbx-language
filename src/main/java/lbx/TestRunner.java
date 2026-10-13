@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * 另有可选的 .in 文件作为子进程的标准输入。
  *
  * 两种用法：
- *   命令行：{@code java -cp target/classes lbx.TestRunner [测试目录，默认 tests]}，退出码 0 = 全绿；
+ *   命令行：{@code java -cp target/classes lbx.TestRunner [测试目录，默认 src/test/resources/lbx]}，退出码 0 = 全绿；
  *   编程调用：{@code TestRunner.runAll(testsDir, childClasspath, out)} 返回失败用例数，
  *   供 {@code src/test/java} 下的 JUnit 测试把它并入 {@code mvn test}。
  *   两者都要显式给出「子进程该用哪个 classpath」：surefire 运行时 {@code java.class.path}
@@ -54,7 +54,7 @@ public final class TestRunner {
         PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
         System.setOut(out);
 
-        Path testsDir = Path.of(args.length > 0 ? args[0] : "tests").toAbsolutePath();
+        Path testsDir = Path.of(args.length > 0 ? args[0] : "src/test/resources/lbx").toAbsolutePath();
         if (!Files.isDirectory(testsDir)) {
             out.println("[tests] 找不到测试目录：" + testsDir);
             System.exit(1);

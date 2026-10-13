@@ -1,5 +1,5 @@
-# 基准 3：冒泡排序 4000 个整数 —— 与 bench/sort.lbx 完全相同的算法
-# 运行：python bench/sort.py
+# 基准 3：冒泡排序 4000 个整数 —— 与 samples/bench/sort.lbx 完全相同的算法
+# 运行：python samples/bench/sort.py
 def bubble(a):
     n = len(a)
     i = 0

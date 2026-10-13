@@ -2,7 +2,7 @@
 
 > 交付物对应：作业提交内容第 6 项「编程Agent使用 ZS 语言开发的应用程序源代码，编程Agent生成的开发记录」。
 > 本文是**过程记录**；Agent 自己写的一手日志在 `docs/agent-log/blackjack-dev-log.md`（645 行、7 个条目）；
-> 应用源码在 `apps/blackjack.lbx`（462 行，有效代码 390 行）。
+> 应用源码在 `samples/app/blackjack.lbx`（462 行，有效代码 390 行）。
 
 ## 1. 这次真正要验证什么
 
@@ -21,7 +21,7 @@
 源码 ≥200 行（用 `(Get-Content 文件).Count` 统计，不许靠空行凑数）；
 功能完整、能从头玩到结束；**必须真跑过**且喂输入能走完一局；
 边做边往 `docs/agent-log/` 写开发记录（每步含"报了什么错、错误消息原文、怎么改的"）；
-只能新建 `apps/` 与 `docs/agent-log/` 下的文件，不许改 `src/`、`docs/01`–`docs/03`、`tests/`。
+只能新建 `samples/app/` 与 `docs/agent-log/` 下的文件，不许改 `src/`、`docs/01`–`docs/03`、`src/test/resources/lbx/`。
 
 ## 3. Agent 的产出
 
@@ -34,7 +34,7 @@
 也就是说：它是按指南 §2.8a「写程序前先把'我需要的能力里哪些 LBX 没有'列出来」做完了能力盘点，
 **据此淘汰了两个候选题目**。这正是那一节想达到的效果。
 
-**规模与结构**：`apps/blackjack.lbx` 共 462 行 —— 空行 38、纯注释 34、**有效代码 390 行**；
+**规模与结构**：`samples/app/blackjack.lbx` 共 462 行 —— 空行 38、纯注释 34、**有效代码 390 行**；
 27 个函数、2 个结构类型（`Card` / `Round`）；`func/if/while/for` 开块 83 个，`end` 83 个，配平。
 函数职责分得很清楚，例如牌堆与洗牌是 `newDeck` / `shuffle` / `ensureDeck` / `drawCard`，
 算点是 `handTotal` / `handIsSoft` / `isNatural`，交互是 `askChoice` / `chooseBet` / `playerTurn`，
@@ -49,8 +49,8 @@
 
 Agent 说"完成了"不算完成，我们逐项自己跑了一遍：
 
-**一、边界纪律。** `git status --short` 只有 `?? apps/` 与 `?? docs/agent-log/blackjack-dev-log.md`，
-`src/`、`docs/01`–`docs/03`、`tests/` **一行未改**。
+**一、边界纪律。** `git status --short` 只有 `?? samples/app/` 与 `?? docs/agent-log/blackjack-dev-log.md`，
+`src/`、`docs/01`–`docs/03`、`src/test/resources/lbx/` **一行未改**。
 
 **二、行数。** 亲自统计：总行数 462、空行 38、纯注释行 34、有效代码行 390 —— 满足 ≥200 行，且不是空行凑数。
 
@@ -58,7 +58,7 @@ Agent 说"完成了"不算完成，我们逐项自己跑了一遍：
 用 Agent 记录的输入序列（每局 `1` 选 10 筹码档、`s` 停牌、一个空行继续，最后 `q` 收工）跑一整局：
 
 ```
-(($all -join "`n") + "`n") | java -cp target\classes lbx.Main apps\blackjack.lbx
+(($all -join "`n") + "`n") | java -cp target\classes lbx.Main samples\app\blackjack.lbx
   → exit=0，输出 99 行
 第 1 局：下注 10，你 16 点，庄家 21 点，庄家黑杰克，盈亏 -10
 第 2 局：下注 10，你 15 点，庄家 24 点，庄家爆牌，盈亏 +10
@@ -168,7 +168,7 @@ Agent 报回 3 处缺口，逐条已修补：
 
 **缺口一（最要紧）：指南没有"输入校验"惯用法，而指南所指的示例本身就是反例。**
 `input()` 读到输入结束返回 `null`，所以 `int(input(...))` 会崩；可
-`examples/guess.lbx` 与语法文档 §11 恰恰都是这么写的，**照抄在输入不足时必崩**——它真的撞到了。
+`samples/examples/guess.lbx` 与语法文档 §11 恰恰都是这么写的，**照抄在输入不足时必崩**——它真的撞到了。
 
 修补：`docs/03` 新增 **§5.1 安全读入**，给出 `askChoice(prompt, allowed)` 白名单模板，
 写明三条要点（候选答案写成数组常量、只做字符串相等比较、调用方只判 `null` 不再转换）；
@@ -212,10 +212,10 @@ cd E:\code\LBX
 mvn -o -q compile
 
 :: 玩一局（每局：下注档位、要牌/停牌、回车继续；q 收工）
-java -cp target\classes lbx.Main apps\blackjack.lbx
+java -cp target\classes lbx.Main samples\app\blackjack.lbx
 
 :: 不给输入也不会崩（真 0 字节标准输入）
-cmd /c "java -cp target\classes lbx.Main apps\blackjack.lbx < NUL"
+cmd /c "java -cp target\classes lbx.Main samples\app\blackjack.lbx < NUL"
 
 :: 解释器回归测试
 java -cp target\classes lbx.TestRunner
@@ -223,7 +223,7 @@ java -cp target\classes lbx.TestRunner
 
 ## 10. 本次交付物清单
 
-- `apps/blackjack.lbx` —— Agent 用 LBX 写的 21 点游戏（462 行，有效代码 390 行）
+- `samples/app/blackjack.lbx` —— Agent 用 LBX 写的 21 点游戏（462 行，有效代码 390 行）
 - `docs/agent-log/blackjack-dev-log.md` —— Agent 一手开发记录（645 行、7 个条目）
 - `docs/05-Agent开发记录.md` —— 本文件（任务、独立验证、坑与缺口、结论）
 - `docs/01-语法规则.md` v1.2、`docs/03-开发指南-AI.md` 三处修补 —— commit `0b74221`

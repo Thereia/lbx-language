@@ -15,10 +15,10 @@
 | # | 要求 | 分值 | 产出位置 | 状态 |
 |---|---|---|---|---|
 | 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.1） |
-| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `tests/`、`src/main/java/lbx/TestRunner.java` | 53 个用例全绿（17 正常 + 36 错误），见 `tests/README.md` |
-| 3 | 性能测试（LBX vs Python） | 10 | `bench/`、`docs/04-性能测试报告.md` | 3 个基准完成：fib(30) 8.9 倍、循环累加 1.09 倍、排序 2.30 倍 |
+| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `src/test/resources/lbx/`、`src/main/java/lbx/TestRunner.java` | 53 个用例全绿（17 正常 + 36 错误），见 `src/test/resources/lbx/README.md` |
+| 3 | 性能测试（LBX vs Python） | 10 | `samples/bench/`、`docs/04-性能测试报告.md` | 3 个基准完成：fib(30) 8.9 倍、循环累加 1.09 倍、排序 2.30 倍 |
 | 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.1 + 入门指南 451 行 + 给 Agent 的 Skill 文档 393 行（断言全部实跑核对） |
-| 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `apps/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、55 个用例回归全绿 |
+| 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `samples/app/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、55 个用例回归全绿 |
 
 验收方式：线下讲解 PPT + 实现细节 + 演示 + 答辩。
 
@@ -53,7 +53,7 @@ LBX/
 ├─ 作业要求.txt              原始作业要求（勿删）
 ├─ README.md                 本文件：总览、进度、运行方式
 ├─ pom.xml                   Maven 构建：Java 17、UTF-8、运行时零依赖，测试用 JUnit 5
-├─ docs/
+├─ docs/                     全部文档
 │  ├─ 00-导读.md             入口：按目的分三条阅读路线（验收主线约 2 小时）
 │  ├─ 01-语法规则.md         交付物1：LBX 语法规则（v1.2，权威）
 │  ├─ 02-开发指南-人.md      交付物4：面向人的入门指南（每条语法都写了设计原因）
@@ -63,32 +63,30 @@ LBX/
 │  ├─ 06-系统介绍.md         交付物8：PPT 大纲与讲稿
 │  ├─ 07-实现讲解.md         验收用：逐文件逐方法讲解 + 17 条验收问答
 │  └─ agent-log/             交付物5：Agent 一手开发日志（blackjack-dev-log.md，645 行）
+├─ samples/                  所有 LBX / Python 脚本（都不是 Java 代码，所以不进 src）
+│  ├─ README.md              这里有什么、怎么跑
+│  ├─ examples/              语言示例：hello / fib / features / guess / demo-tokens / demo-ast
+│  ├─ app/blackjack.lbx      交付物5：编程 Agent 用 LBX 写的小游戏（462 行）
+│  └─ bench/                 交付物3：性能基准（fib / loop / sort 的 .lbx 与 .py）
 ├─ src/
-│  ├─ main/java/lbx/         解释器源码（单包 10 个文件）
+│  ├─ main/java/lbx/         解释器源码（单包 10 个文件，逐文件说明见 §6.3）
 │  │  ├─ Main.java           入口：读文件 → 词法 → 语法 → 求值；--tokens / --ast；退出码
-│  │  ├─ LbxError.java       唯一异常：词法 / 语法 / 运行时三类错误与 §10.3 的消息格式
+│  │  ├─ LbxError.java       唯一异常：三类错误与 §10.3 的消息格式
 │  │  ├─ Token.java          记号：enum TokenKind + record Token
 │  │  ├─ Node.java           语法树：enum Kind + 单个 Node 类
 │  │  ├─ Lexer.java          词法分析：字符流 → 记号流（含 ${} 插值的边界切分）
-│  │  ├─ Parser.java         语法分析：递归下降 + 优先级爬升；拼装插值表达式
-│  │  ├─ Value.java          值模型：sealed interface + 8 个实现，每类自带 §8 的 str() / repr()
-│  │  ├─ Ops.java            §5 运算规则（类型判断、除零、比较、条件检查）集中一处
-│  │  ├─ Interp.java         求值器：作用域栈、eval、内置函数表、控制流异常
-│  │  └─ TestRunner.java     黑盒测试运行器：新起 JVM 跑 lbx.Main，比对 stdout / stderr / 退出码
-│  └─ test/java/lbx/         JUnit 测试，随 `mvn test` 一起跑
-│     ├─ LexerTest.java      词法单元测试：记号种类、行列号、关键字优先
-│     ├─ OpsTest.java        §5 规则单元测试：整除、除零、混合类型、引用比较、条件类型
-│     ├─ InterpTest.java     端到端：同进程跑完整链路，断言输出格式、作用域、错误行列号
-│     └─ BlackBoxSuiteTest.java  把 tests/ 下 55 个黑盒用例接入 `mvn test`
-├─ tests/                    交付物2：黑盒测试集（语言层面的符合性数据，说明见 tests/README.md）
-│  ├─ README.md              怎么跑、目录约定、覆盖矩阵
-│  ├─ cases/                 正常用例：名字.lbx + 名字.expected（+ 可选 名字.in）
-│  └─ errors/                错误用例：名字.lbx + 名字.expected（期望 stderr 与退出码 1）
-├─ bench/                    交付物3：性能测试脚本（lbx + py 同算法同输入，说明见 bench/README.md）
-├─ apps/                     交付物5：编程 Agent 用 LBX 写的小游戏（blackjack.lbx，462 行）
-├─ examples/                 LBX 语言编写的示例程序（hello / fib / features / guess / demo-*）
-└─ target/                   Maven 构建产物（不入版本库）
-```
+│  │  ├─ Parser.java         语法分析：递归下降 + 优先级爬升
+│  │  ├─ Value.java          值模型：sealed interface + 8 个实现（§8 的 str() / repr() 在各类里）
+│  │  ├─ Ops.java            §5 运算规则集中一处
+│  │  ├─ Interp.java         求值器：作用域栈、eval、内置函数、控制流异常
+│  │  └─ TestRunner.java     黑盒测试运行器（命令行工具 + 供 JUnit 调用）
+│  └─ test/
+│     ├─ java/lbx/           JUnit 测试 4 个类，随 `mvn test` 一起跑
+│     └─ resources/lbx/      交付物2：黑盒测试集（55 个用例）
+│        ├─ README.md        覆盖矩阵与目录约定
+│        ├─ cases/           17 个正常用例（.lbx + .expected，可选 .in）
+│        └─ errors/          36 个错误用例（.lbx + .expected）
+└─ target/                   Maven 构建产物（不入版本库）```
 
 ## 四、里程碑
 
@@ -111,9 +109,9 @@ LBX/
 
 ```powershell
 mvn -o -q compile                                            # 编译（-o = 离线，本机 .m2 已具备全部插件）
-java -cp target\classes lbx.Main examples/features.lbx         # 跑脚本
-java -cp target\classes lbx.Main --tokens examples/demo-tokens.lbx   # 只看记号流
-java -cp target\classes lbx.Main --ast    examples/demo-ast.lbx      # 只看语法树
+java -cp target\classes lbx.Main samples/examples/features.lbx         # 跑脚本
+java -cp target\classes lbx.Main --tokens samples/examples/demo-tokens.lbx   # 只看记号流
+java -cp target\classes lbx.Main --ast    samples/examples/demo-ast.lbx      # 只看语法树
 mvn -o -q test                                               # 单元测试 + 55 个黑盒用例，一条命令
 java -cp target\classes lbx.TestRunner                       # 不经 Maven 也能直接跑黑盒套件
 mvn -o -q package                                            # 打成 target/lbx.jar（清单里带 Main-Class）
@@ -168,7 +166,7 @@ mvn -o -q package                                            # 打成 target/lbx
 
 测试（`src/test/java/lbx/`，4 个文件）分两层：
 `LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API），
-`BlackBoxSuiteTest` 调用 `TestRunner` 把 `tests/` 下的黑盒用例并进 `mvn test`。
+`BlackBoxSuiteTest` 调用 `TestRunner` 把 `src/test/resources/lbx/` 下的黑盒用例并进 `mvn test`。
 黑盒测试集本身是 55 个用例（17 正常 + 36 错误 + 2 个命令行用例），共 405 行 LBX 源码与 53 个 `.expected` 期望文件。
 `TestRunner` 放在 main 而不放 test，是因为它同时是**命令行工具**（`java -cp target\classes lbx.TestRunner`），
 AI 开发指南与文档都直接引用这条命令。
@@ -179,7 +177,7 @@ AI 开发指南与文档都直接引用这条命令。
 |---|---|---|---|
 | 1 | `print("${"内层字符串"}")` 报「非法字符」 | 词法分析器切字符串时不知道 `${}` 内部是表达式，把内层字符串的引号当成了外层字符串的结束引号 | `string()` 进入 `${` 后维护括号深度，并整段跳过片段里的嵌套字符串；同时把内置函数 `type` 改名为 `typeof`（它与关键字 `type` 撞名，本就无法调用），升语法文档 v1.1 |
 | 2 | `func judge(...)` 里用了 `elif`，后面 `func main` 报「定义只能出现在最外层」 | `elif` 递归解析时内层 `ifStmt()` 已消费结尾的 `end`，外层又 `expectKeyword("end")`，把函数自己的 `end` 抢走 | `elif` 分支直接返回，不再要求第二个 `end` |
-| 3 | 输出在 Windows 上是 `\r\n`，Linux 上是 `\n` | `PrintStream.println` 用的是 `System.lineSeparator()` | `print` 内置函数改成显式输出 `'\n'`；不固定行尾的话，黑盒测试按字节比对换个平台就全错（见 §六 与 `tests/README.md`） |
+| 3 | 输出在 Windows 上是 `\r\n`，Linux 上是 `\n` | `PrintStream.println` 用的是 `System.lineSeparator()` | `print` 内置函数改成显式输出 `'\n'`；不固定行尾的话，黑盒测试按字节比对换个平台就全错（见 §六 与 `src/test/resources/lbx/README.md`） |
 
 ## 七、实现要点备忘
 
