@@ -1,0 +1,462 @@
+// blackjack.lbx —— LBX 命令行 21 点（Blackjack）
+// 运行：java -cp build lbx.Main apps/blackjack.lbx
+//
+// 为什么是 21 点：LBX 只有 9 个内置函数（没有随机数、没有字符串下标、没有子串、
+// 没有异常处理），而 21 点每一步的玩家指令都是"要牌/停牌/下注档位"这种**有限指令集**，
+// 可以完全靠字符串相等比较处理，绕开"解析任意数字串"这个 LBX 的硬伤。
+//
+// 本脚本里"自己实现"的东西（指南 §2.8a 要求先列清单）：
+//   随机数（LCG）、洗牌（Fisher–Yates）、A 的软硬算点、abs/max/min、
+//   输入合法性校验（LBX 没有 try/catch，int() 遇到非数字串会直接终止程序）。
+
+// ==================== 一、伪随机数（指南 §5 的 LCG 惯用法） ====================
+// baseSeed 是"复现用"的常量：注意 seed 本身会被洗牌消耗掉，开场说明里不能直接印 seed
+baseSeed = 20261013;
+seed = baseSeed;
+
+func nextRand()
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed;
+end
+
+func randRange(n)
+    return nextRand() % n;
+end
+
+// ==================== 二、自写小工具（指南 §2.8a：库里没有） ====================
+func abs(x)
+    if x < 0
+        return -x;
+    end
+    return x;
+end
+
+func max(a, b)
+    if a > b
+        return a;
+    end
+    return b;
+end
+
+func min(a, b)
+    if a < b
+        return a;
+    end
+    return b;
+end
+
+// 带符号的盈亏文本："+20" / "-10" / "±0"
+func signed(n)
+    if n > 0
+        return "+" + str(n);
+    elif n < 0
+        return "-" + str(abs(n));
+    end
+    return "±0";
+end
+
+// ==================== 三、牌与牌堆 ====================
+// A 先按 11 存，算点时再按需降为 1
+type Card = { label = "??", value = 0 };
+
+func rankName(r)
+    if r == 1
+        return "A";
+    elif r == 11
+        return "J";
+    elif r == 12
+        return "Q";
+    elif r == 13
+        return "K";
+    end
+    return str(r);
+end
+
+func cardValue(r)
+    if r == 1
+        return 11;
+    elif r >= 10
+        return 10;
+    end
+    return r;
+end
+
+func newDeck()
+    d = [];
+    for suit in ["♠", "♥", "♦", "♣"]
+        for r in range(1, 14)
+            push(d, Card { label = suit + rankName(r), value = cardValue(r) });
+        end
+    end
+    return d;
+end
+
+// Fisher–Yates 洗牌：数组是引用语义，原地洗，不需要返回
+func shuffle(a)
+    i = len(a) - 1;
+    while i > 0
+        j = randRange(i + 1);
+        t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+        i = i - 1;
+    end
+end
+
+// 牌靴快用完时换新的一副（52 张，一局最多用掉十几张）
+func ensureDeck()
+    if len(deck) < 15
+        deck = newDeck();
+        shuffle(deck);
+        print("（牌靴见底，重洗一副 52 张）");
+    end
+end
+
+func drawCard(hand)
+    ensureDeck();
+    push(hand, pop(deck));
+end
+
+// ==================== 四、算点（A 的软硬处理） ====================
+// 全按 11 累加，超过 21 就把一张 A 从 11 降成 1（等价于减 10）
+func handTotal(hand)
+    total = 0;
+    aces = 0;
+    for c in hand
+        total = total + c.value;
+        if c.value == 11
+            aces = aces + 1;
+        end
+    end
+    while total > 21 and aces > 0
+        total = total - 10;
+        aces = aces - 1;
+    end
+    return total;
+end
+
+// 手上还有 A 在当 11 用（"软牌"）——必须用**降完之后**剩下的 A 张数判断
+func handIsSoft(hand)
+    total = 0;
+    aces = 0;
+    for c in hand
+        total = total + c.value;
+        if c.value == 11
+            aces = aces + 1;
+        end
+    end
+    while total > 21 and aces > 0
+        total = total - 10;
+        aces = aces - 1;
+    end
+    return total <= 21 and aces > 0;
+end
+
+// 前两张就是 21 点 → 黑杰克
+func isNatural(hand)
+    return len(hand) == 2 and handTotal(hand) == 21;
+end
+
+func totalText(hand)
+    t = handTotal(hand);
+    if handIsSoft(hand)
+        return str(t) + "(软)";
+    end
+    return str(t);
+end
+
+func handText(hand)
+    s = "";
+    i = 0;
+    while i < len(hand)
+        if i > 0
+            s = s + " ";
+        end
+        s = s + hand[i].label;
+        i = i + 1;
+    end
+    return s;
+end
+
+// ==================== 五、输入层：LBX 没有 try/catch，必须先校验再 int() ====================
+// 只接受白名单里的输入；空行、乱输都会重新问；读到 EOF（return null）表示玩家离开。
+// 注意 input() 读到文件结尾返回 null，null 一旦流进 int()/len() 就是运行时错误。
+func askChoice(prompt, allowed)
+    tries = 0;
+    while tries < 20
+        s = input(prompt);
+        if s == null
+            return null;
+        end
+        for opt in allowed
+            if s == opt
+                return s;
+            end
+        end
+        tries = tries + 1;
+        print("看不懂“${s}”，请输入 ${allowed} 之一。");
+    end
+    print("连续输错太多次，当成收工处理。");
+    return null;
+end
+
+// ==================== 六、下注 ====================
+func betOf(key)
+    if key == "1"
+        return 10;
+    elif key == "2"
+        return 20;
+    elif key == "3"
+        return 50;
+    end
+    return chips;                 // a = 全押
+end
+
+func chooseBet()
+    while true
+        print("你现在有 ${chips} 筹码。");
+        s = askChoice("下注 [1]=10 [2]=20 [3]=50 [a]=全押 > ", betKeys);
+        if s == null
+            return 0;             // 0 表示"不玩了/输入结束"
+        end
+        b = betOf(s);
+        if b > 0 and b <= chips
+            return b;
+        end
+        print("押不了 ${b}：筹码只有 ${chips}。");
+    end
+    return 0;
+end
+
+// ==================== 七、玩家回合 ====================
+// 起手的手牌由 playRound 打印，这里只打印"要牌之后"的新手牌，避免同一手牌印两遍
+func playerTurn(hand)
+    while true
+        t = handTotal(hand);
+        if t > 21
+            return "bust";
+        end
+        if t == 21
+            return "stand";
+        end
+        a = askChoice("要牌 [h] / 停牌 [s] > ", actionKeys);
+        if a == null
+            return "quit";
+        end
+        if a == "h" or a == "H"
+            drawCard(hand);
+            print("你要到 ${hand[len(hand) - 1].label}：${handText(hand)} → ${totalText(hand)}");
+        else
+            return "stand";
+        end
+    end
+    return "stand";
+end
+
+// ==================== 八、庄家回合：补到 17 点或以上就停 ====================
+func dealerTurn(hand)
+    print("庄家亮牌：${handText(hand)} → ${totalText(hand)}");
+    while handTotal(hand) < 17
+        drawCard(hand);
+        print("庄家补牌 ${hand[len(hand) - 1].label} → ${totalText(hand)}");
+    end
+    if handTotal(hand) > 21
+        print("庄家爆牌。");
+    end
+end
+
+// ==================== 九、结算 ====================
+type Round = { idx = 0, bet = 0, my = 0, dealer = 0, result = "-", delta = 0 };
+
+func settle(bet, p, d)
+    pt = handTotal(p);
+    dt = handTotal(d);
+    if isNatural(p) and not isNatural(d)
+        wins = wins + 1;
+        blackjacks = blackjacks + 1;
+        lastResult = "黑杰克，按 3:2 赔付";
+        return bet * 3 / 2;
+    end
+    if isNatural(p) and isNatural(d)
+        pushes = pushes + 1;
+        lastResult = "双方黑杰克，平";
+        return 0;
+    end
+    if isNatural(d)
+        losses = losses + 1;
+        lastResult = "庄家黑杰克";
+        return -bet;
+    end
+    if pt > 21
+        losses = losses + 1;
+        lastResult = "你爆牌";
+        return -bet;
+    end
+    if dt > 21
+        wins = wins + 1;
+        lastResult = "庄家爆牌";
+        return bet;
+    end
+    if pt > dt
+        wins = wins + 1;
+        lastResult = "你的点数更大";
+        return bet;
+    end
+    if pt < dt
+        losses = losses + 1;
+        lastResult = "庄家点数更大";
+        return -bet;
+    end
+    pushes = pushes + 1;
+    lastResult = "平局，退回本注";
+    return 0;
+end
+
+// ==================== 十、一局流程 ====================
+// 返回 true = 还能继续；false = 该结束了（破产/打满/玩家收工/输入结束）
+func playRound()
+    bet = chooseBet();
+    if bet == 0
+        return false;
+    end
+
+    roundNo = roundNo + 1;
+    print("");
+    print("---------- 第 ${roundNo} 局 / 共 ${maxRounds} 局，下注 ${bet} ----------");
+
+    player = [];
+    dealer = [];
+    drawCard(player);
+    drawCard(dealer);
+    drawCard(player);
+    drawCard(dealer);
+    print("庄家明牌：${dealer[0].label}（另一张扣着）");
+    print("你的手牌：${handText(player)} → ${totalText(player)}");
+
+    if isNatural(player)
+        print("★ 天胡黑杰克！");
+    else
+        act = playerTurn(player);
+        if act == "quit"
+            print("（输入结束，这一局作废收摊）");
+            return false;
+        end
+    end
+
+    pt = handTotal(player);
+    if pt <= 21 and not isNatural(player)
+        dealerTurn(dealer);
+    else
+        print("庄家手牌：${handText(dealer)} → ${totalText(dealer)}");
+    end
+
+    dt = handTotal(dealer);
+    delta = settle(bet, player, dealer);
+    chips = chips + delta;
+    bestChips = max(bestChips, chips);
+    lowChips = min(lowChips, chips);
+    push(history, Round { idx = roundNo, bet = bet, my = pt, dealer = dt, result = lastResult, delta = delta });
+    print("本局结果：${lastResult}，盈亏 ${signed(delta)}，剩余筹码 ${chips}");
+
+    if chips <= 0
+        return false;
+    end
+    if roundNo >= maxRounds
+        return false;
+    end
+    c = askChoice("回车继续下一局，输入 [q] 收工 > ", quitKeys);
+    if c == null or c == "q" or c == "Q"
+        return false;
+    end
+    return true;
+end
+
+// ==================== 十一、开场说明与最终结算 ====================
+func printBanner()
+    print("==================================================");
+    print("              L B X   21 点（Blackjack）");
+    print("==================================================");
+    print("玩法：");
+    print("  1. 手牌点数尽量接近 21 但不能超过，并且要比庄家大。");
+    print("  2. A 可以当 11 或 1（脚本自动挑最好的算法）；J/Q/K 都算 10。");
+    print("  3. 起手两张就是 21 点叫黑杰克，直接按 3:2 赔付。");
+    print("  4. 庄家必须补牌到 17 点或以上，17 点即停。");
+    print("  5. 每局先下注；输光筹码或打满 ${maxRounds} 局，游戏结束。");
+    print("操作：");
+    print("  下注输 1 / 2 / 3 / a 再回车；要牌输 h；停牌输 s；收工输 q。");
+    print("  牌靴种子固定为 ${baseSeed}，所以每局牌序可复现（LBX 没有时间和随机数）。");
+    print("");
+end
+
+func finalReport()
+    print("");
+    print("================== 收摊结算 ==================");
+    if chips <= 0
+        print("结束原因：筹码输光了。");
+    elif roundNo >= maxRounds
+        print("结束原因：约定局数打满。");
+    else
+        print("结束原因：玩家主动收工 / 输入结束。");
+    end
+    print("共打 ${roundNo} 局；最终筹码 ${chips}（起始 100，峰值 ${bestChips}，谷底 ${lowChips}）。");
+    print("战绩：胜 ${wins} 局，负 ${losses} 局，平 ${pushes} 局，其中黑杰克 ${blackjacks} 次。");
+    if len(history) > 0
+        print("------------------ 逐局明细 ------------------");
+        for r in history
+            print("第 ${r.idx} 局：下注 ${r.bet}，你 ${r.my} 点，庄家 ${r.dealer} 点，${r.result}，盈亏 ${signed(r.delta)}");
+        end
+    end
+    grade = "看客（筹码原封不动）";
+    if chips <= 0
+        grade = "破产（裤衩都输了）";
+    elif chips >= 250
+        grade = "赌神（见好就收是什么？）";
+    elif chips >= 150
+        grade = "老手（会停牌的人）";
+    elif chips > 100
+        grade = "小赚（今天运气不错）";
+    elif chips == 100
+        grade = "保本（白玩一场）";
+    else
+        grade = "残兵（还剩下一点）";
+    end
+    print("评价：${grade}");
+    print("==============================================");
+end
+
+// ==================== 十二、全局状态与入口 ====================
+betKeys = ["1", "2", "3", "a", "A"];
+actionKeys = ["h", "H", "s", "S"];
+quitKeys = ["", "q", "Q"];
+deck = newDeck();
+shuffle(deck);
+history = [];
+chips = 100;
+bestChips = 100;
+lowChips = 100;
+roundNo = 0;
+maxRounds = 8;
+wins = 0;
+losses = 0;
+pushes = 0;
+blackjacks = 0;
+lastResult = "-";
+
+func main()
+    printBanner();
+    while true
+        if chips <= 0
+            break;
+        end
+        if roundNo >= maxRounds
+            break;
+        end
+        keepGoing = playRound();
+        if keepGoing == false
+            break;
+        end
+    end
+    finalReport();
+end
+
+main();
