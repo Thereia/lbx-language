@@ -82,7 +82,7 @@ LBX/
 │  │  ├─ Interp.java         求值器：作用域栈、eval、内置函数、控制流异常
 │  │  └─ TestRunner.java     黑盒测试运行器（命令行工具 + 供 JUnit 调用）
 │  └─ test/
-│     ├─ java/lbx/           JUnit 测试 4 个类，随 `mvn test` 一起跑
+│     ├─ java/lbx/           JUnit 测试 5 个类（单元 / 端到端 / 蜕变 / 黑盒套件入口），随 `mvn test` 一起跑
 │     └─ resources/lbx/      交付物2：黑盒测试集（60 个用例）
 │        ├─ README.md        覆盖矩阵与目录约定
 │        ├─ cases/           18 个正常用例（.lbx + .expected，可选 .in）
@@ -166,20 +166,21 @@ mvn -o -q package                                            # 打成 target/lbx
 | `LbxError.java` | 38 | `Token.java` | 17 |
 | **合计** | | | **2066** |
 
-测试（`src/test/java/lbx/`，4 个文件 373 行）分两层：
-`LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API），
+测试（`src/test/java/lbx/`，5 个文件）分三层：
+`LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API，其中 `InterpTest` 还在字节层断言"输出只含 LF"）；
+`MetamorphicTest` 是**蜕变测试**——不写死期望值，只检查"同一计算两种写法结果一致""排序必须非递减、元素不增不减、幂等"这类不变式，因此不受"规格与实现同源"的共模盲点影响；
 `BlackBoxSuiteTest` 调用 `TestRunner` 把 `src/test/resources/lbx/` 下的黑盒用例并进 `mvn test`。
 黑盒测试集本身是 60 个用例（18 正常 + 40 错误 + 2 个命令行用例），共 437 行 LBX 源码与 58 个 `.expected` 期望文件。
 `TestRunner` 放在 main 而不放 test，是因为它同时是**命令行工具**（`java -cp target\classes lbx.TestRunner`），
 AI 开发指南与文档都直接引用这条命令。
 
-### 6.4 实现中发现并修掉的两个真 bug（值得写进 PPT）
+### 6.4 实现中发现并修掉的三个真 bug（值得写进 PPT）
 
 | # | 现象 | 原因 | 修法 |
 |---|---|---|---|
 | 1 | `print("${"内层字符串"}")` 报「非法字符」 | 词法分析器切字符串时不知道 `${}` 内部是表达式，把内层字符串的引号当成了外层字符串的结束引号 | `string()` 进入 `${` 后维护括号深度，并整段跳过片段里的嵌套字符串；同时把内置函数 `type` 改名为 `typeof`（它与关键字 `type` 撞名，本就无法调用），升语法文档 v1.1 |
 | 2 | `func judge(...)` 里用了 `elif`，后面 `func main` 报「定义只能出现在最外层」 | `elif` 递归解析时内层 `ifStmt()` 已消费结尾的 `end`，外层又 `expectKeyword("end")`，把函数自己的 `end` 抢走 | `elif` 分支直接返回，不再要求第二个 `end` |
-| 3 | 输出在 Windows 上是 `\r\n`，Linux 上是 `\n` | `PrintStream.println` 用的是 `System.lineSeparator()` | `print` 内置函数改成显式输出 `'\n'`；不固定行尾的话，黑盒测试按字节比对换个平台就全错（见 §六 与 `src/test/resources/lbx/README.md`） |
+| 3 | 输出在 Windows 上是 `\r\n`，Linux 上是 `\n` | `PrintStream.println` 用的是 `System.lineSeparator()` | `print` 内置函数改成显式输出 `'\n'`；不固定行尾的话，黑盒测试按字节比对换个平台就全错。**而且第一版守卫是假的**：运行器把 CRLF 归一化了，等于把回归盖住——现已改成"输出含 `0x0D` 直接判失败"，并用"故意注入 CRLF → 17 个用例失败 → 还原后全绿"验证过守卫真的有效 |
 
 ## 七、实现要点备忘
 

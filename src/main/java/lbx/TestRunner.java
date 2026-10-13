@@ -88,6 +88,8 @@ public final class TestRunner {
                     ok(false, label, "退出码应为 0，实际 " + r.exit() + "；stderr=" + oneLine(r.err()));
                 } else if (!Files.exists(expected)) {
                     ok(false, label, "缺少期望输出文件 " + expected.getFileName());
+                } else if (hasCR(r.out())) {
+                    ok(false, label, "stdout 含 CR（0x0D）：§8 规定换行为 LF，含 CR 会让跨平台的逐字节比对失效");
                 } else {
                     byte[] exp = Files.readAllBytes(expected);
                     ok(equal(exp, r.out()), label, diff(exp, r.out()));
@@ -109,6 +111,8 @@ public final class TestRunner {
                     ok(false, label, "退出码应为 1，实际 " + r.exit());
                 } else if (!Files.exists(expected)) {
                     ok(false, label, "缺少期望错误文件 " + expected.getFileName());
+                } else if (hasCR(r.err())) {
+                    ok(false, label, "stderr 含 CR（0x0D）：§10.3 的错误消息换行也必须是 LF");
                 } else {
                     byte[] exp = Files.readAllBytes(expected);
                     ok(equal(exp, r.err()), label, diff(exp, r.err()));
@@ -190,6 +194,20 @@ public final class TestRunner {
 
     private static String text(byte[] b) {
         return new String(b, StandardCharsets.UTF_8).replace("\r\n", "\n");
+    }
+
+    /**
+     * 输出里是否混进了回车（0x0D）。
+     *
+     * 内容比对时我们容忍 CRLF（防止期望文件被编辑器改坏），但**容忍不等于放行**：
+     * 如果解释器自己输出 CRLF（例如有人把 print 改回 println，Windows 上就会），
+     * 归一化会把这个回归悄悄盖住。所以这里显式报失败。
+     */
+    private static boolean hasCR(byte[] b) {
+        for (byte x : b) {
+            if (x == 0x0D) return true;
+        }
+        return false;
     }
 
     private static String oneLine(byte[] b) {

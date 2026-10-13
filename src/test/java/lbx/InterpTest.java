@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 端到端单元测试：在**同一个 JVM 内**跑完整的「词法 → 语法 → 求值」链路，
@@ -157,5 +158,24 @@ class InterpTest {
         assertEquals("[\"a\", 1.5]\n", run("print([\"a\", 1.5]);"));   // 容器内也用 Double.toString
         assertEquals("true\n", run("print(1 == 1.0);"));
         assertEquals("0.25\n", run("print(\"${1.0 / 4.0}\");"));       // 插值里同样是浮点
+    }
+
+    /**
+     * §8 规定换行是 LF。这条要在**字节层**断言，而不是在字符串层：
+     * 如果哪天 print 被改回 println，Windows 上会输出 CRLF，而字符串比较（或运行器的 CRLF 归一化）
+     * 都看不出来 —— 这个回归当初就是这么发生的。
+     */
+    @Test
+    void 输出只含LF不含CR() {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(buf, true, StandardCharsets.UTF_8);
+        Node program = new Parser(new Lexer("print(1);\nprint(\"a\");\n").lex()).parseProgram();
+        new Interp(out, new BufferedReader(new StringReader(""))).run(program);
+
+        byte[] bytes = buf.toByteArray();
+        for (byte b : bytes) {
+            assertTrue(b != 0x0D, "输出里出现了 CR（0x0D）：解释器必须只输出 LF");
+        }
+        assertEquals("1\na\n", new String(bytes, StandardCharsets.UTF_8));
     }
 }
