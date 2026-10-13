@@ -1,0 +1,17 @@
+// 覆盖：数组字面量、长度、下标读写、嵌套下标、push/pop、尾逗号
+a = [];
+print(a, len(a));
+push(a, 1);
+push(a, "two");
+push(a, [3]);
+print(a, len(a), a[2][0]);
+a[0] = 99;
+print(a);
+print(pop(a), a);
+b = [1, 2, 3];
+print(len(b), b[0], b[len(b) - 1]);
+nested = [[1, 2], [3, 4]];
+print(nested, nested[1][0]);
+print(typeof(a), typeof(a[1]));
+c = [1, 2, ];
+print(c);

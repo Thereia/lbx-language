@@ -1,0 +1,53 @@
+// 覆盖：定义与调用、先调用后定义、递归、互相递归、无返回值、参数按值/按引用
+print(later(3));
+
+func later(n)
+    return n * 2;
+end
+
+func fac(n)
+    if n <= 1
+        return 1;
+    end
+    return n * fac(n - 1);
+end
+print(fac(5));
+
+func isEven(n)
+    if n == 0
+        return true;
+    end
+    return isOdd(n - 1);
+end
+
+func isOdd(n)
+    if n == 0
+        return false;
+    end
+    return isEven(n - 1);
+end
+print(isEven(10), isOdd(10), isEven(7), isOdd(7));
+
+func noret()
+    x = 1;
+end
+print(noret(), typeof(noret()));
+
+func add3(a, b, c)
+    return a + b + c;
+end
+print(add3(1, 2, 3), add3(1 + 1, 2 * 2, len("abc")));
+
+func change(n)
+    n = 100;
+    return n;
+end
+x = 1;
+print(change(x), x);
+
+func pushAll(arr)
+    push(arr, 9);
+    return len(arr);
+end
+a = [1];
+print(pushAll(a), a);

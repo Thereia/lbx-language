@@ -1,0 +1,34 @@
+// 综合用例：结构数组 + 冒泡排序 + 函数 + 嵌套循环 + 字段比较
+type Item = { name = "", score = 0 };
+
+func makeItem(name, score)
+    return Item { name = name, score = score };
+end
+
+func sortByScore(items)
+    n = len(items);
+    i = 0;
+    while i < n - 1
+        j = 0;
+        while j < n - 1 - i
+            if items[j].score < items[j + 1].score
+                t = items[j];
+                items[j] = items[j + 1];
+                items[j + 1] = t;
+            end
+            j = j + 1;
+        end
+        i = i + 1;
+    end
+    return items;
+end
+
+data = [];
+push(data, makeItem("张三", 88));
+push(data, makeItem("李四", 95));
+push(data, makeItem("王五", 70));
+sortByScore(data);
+for it in data
+    print("${it.name}：${it.score}");
+end
+print(data);

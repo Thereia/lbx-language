@@ -1,0 +1,25 @@
+// 覆盖：作用域链、函数内改全局变量、循环不产生新作用域、参数与全局同名
+g = 1;
+
+func bump()
+    g = g + 10;
+    inner = 5;
+    return g + inner;
+end
+print(bump(), g);
+
+func setG(v)
+    g = v;
+    return g;
+end
+print(setG(100), g);
+
+for i in [7, 8]
+end
+print("循环变量在循环外仍可见：${i}");
+
+func shadow(x)
+    return x * 2;
+end
+x = 5;
+print(shadow(3), x);

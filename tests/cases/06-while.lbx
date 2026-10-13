@@ -1,0 +1,18 @@
+// 覆盖：while、break、continue、条件恒真
+i = 0;
+while i < 3
+    print("轮 ${i}");
+    i = i + 1;
+end
+j = 0;
+while true
+    j = j + 1;
+    if j == 2
+        continue;
+    end
+    if j > 4
+        break;
+    end
+    print("j = ${j}");
+end
+print("结束 j = ${j}");

@@ -1,0 +1,206 @@
+package lbx;
+
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+/**
+ * LBX 黑盒测试运行器（作业提交内容第 3 项）。
+ *
+ * 「黑盒」的含义落实在实现上：本运行器**不调用解释器的任何内部 API**，
+ * 每个用例都是新起一个 JVM 跑 {@code lbx.Main}，只观察三样东西：
+ *   ① 子进程的 stdout（与 .expected 逐字节比对）
+ *   ② 子进程的 stderr（错误用例与 .expected 比对）
+ *   ③ 子进程的退出码（0 正常 / 1 出错 / 2 用法错误）
+ * 另有可选的 .in 文件作为子进程的标准输入。
+ *
+ * 用法：java -cp build lbx.TestRunner [测试目录，默认 tests]
+ * 退出码：0 全部通过；1 有失败。
+ */
+public final class TestRunner {
+
+    private static final List<String> failures = new ArrayList<>();
+    private static int total = 0;
+    private static int passed = 0;
+
+    private static String javaBin;
+    private static String classpath;
+    private static Path emptyStdin;
+
+    public static void main(String[] args) throws Exception {
+        // 和 Main 一样：Windows 下 Java 默认字符集是 GBK，不强制 UTF-8 的话
+        // 运行器自己的中文输出在控制台会乱码。
+        PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
+        System.setOut(out);
+
+        Path testsDir = Path.of(args.length > 0 ? args[0] : "tests").toAbsolutePath();
+        if (!Files.isDirectory(testsDir)) {
+            System.out.println("[tests] 找不到测试目录：" + testsDir);
+            System.exit(1);
+            return;
+        }
+        javaBin = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        classpath = System.getProperty("java.class.path");
+        emptyStdin = Files.createTempFile("lbx-empty-stdin", ".bin");
+
+        System.out.println("[tests] 测试目录：" + testsDir);
+        System.out.println("[tests] 解释器：" + javaBin);
+        System.out.println();
+
+        // ---------- 正常用例：退出码 0，stdout 与 .expected 逐字节一致 ----------
+        System.out.println("正常用例（期望退出码 0，stdout 与 .expected 一致）");
+        Path casesDir = testsDir.resolve("cases");
+        if (Files.isDirectory(casesDir)) {
+            for (Path lbx : listLbx(casesDir)) {
+                String base = stripExt(lbx);
+                Path expected = Path.of(base + ".expected");
+                Path stdin = Path.of(base + ".in");
+                Result r = run(lbx, Files.exists(stdin) ? stdin : emptyStdin);
+                String label = "cases/" + lbx.getFileName();
+                if (r.exit() != 0) {
+                    ok(false, label, "退出码应为 0，实际 " + r.exit() + "；stderr=" + oneLine(r.err()));
+                } else if (!Files.exists(expected)) {
+                    ok(false, label, "缺少期望输出文件 " + expected.getFileName());
+                } else {
+                    byte[] exp = Files.readAllBytes(expected);
+                    ok(equal(exp, r.out()), label, diff(exp, r.out()));
+                }
+            }
+        }
+
+        // ---------- 错误用例：退出码 1，stderr 与 .expected 一致 ----------
+        System.out.println();
+        System.out.println("错误用例（期望退出码 1，stderr 与 .expected 一致）");
+        Path errorsDir = testsDir.resolve("errors");
+        if (Files.isDirectory(errorsDir)) {
+            for (Path lbx : listLbx(errorsDir)) {
+                String base = stripExt(lbx);
+                Path expected = Path.of(base + ".expected");
+                Result r = run(lbx, emptyStdin);
+                String label = "errors/" + lbx.getFileName();
+                if (r.exit() != 1) {
+                    ok(false, label, "退出码应为 1，实际 " + r.exit());
+                } else if (!Files.exists(expected)) {
+                    ok(false, label, "缺少期望错误文件 " + expected.getFileName());
+                } else {
+                    byte[] exp = Files.readAllBytes(expected);
+                    ok(equal(exp, r.err()), label, diff(exp, r.err()));
+                }
+            }
+        }
+
+        // ---------- 命令行用例：语法文档 §10.2 的退出码 2 ----------
+        System.out.println();
+        System.out.println("命令行用例（期望退出码 2）");
+        Result noArg = run(null, emptyStdin);
+        ok(noArg.exit() == 2 && text(noArg.err()).startsWith("[LBX 用法错误] 用法："),
+                "cli/不带参数", "退出码=" + noArg.exit() + "；stderr=" + oneLine(noArg.err()));
+
+        Result missing = run(testsDir.resolve("__不存在的脚本__.lbx"), emptyStdin);
+        ok(missing.exit() == 2 && text(missing.err()).startsWith("[LBX 用法错误] 读不到脚本文件："),
+                "cli/文件不存在", "退出码=" + missing.exit() + "；stderr=" + oneLine(missing.err()));
+
+        Files.deleteIfExists(emptyStdin);
+
+        System.out.println();
+        System.out.println("[tests] 共 " + total + " 个用例，" + passed + " 通过，" + (total - passed) + " 失败");
+        if (!failures.isEmpty()) {
+            System.out.println();
+            System.out.println("失败清单：");
+            for (String f : failures) System.out.println("  - " + f);
+        }
+        System.exit(passed == total ? 0 : 1);
+    }
+
+    // ---------------- 一个用例的执行 ----------------
+
+    private record Result(int exit, byte[] out, byte[] err) {}
+
+    /** 新起一个 JVM 跑解释器；script 为 null 表示不带脚本参数（测用法错误）。 */
+    private static Result run(Path script, Path stdin) throws Exception {
+        Path outFile = Files.createTempFile("lbx-run-out", ".bin");
+        Path errFile = Files.createTempFile("lbx-run-err", ".bin");
+        List<String> cmd = new ArrayList<>(List.of(
+                javaBin, "-Dfile.encoding=UTF-8", "-cp", classpath, "lbx.Main"));
+        if (script != null) cmd.add(script.toString());
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.redirectOutput(outFile.toFile());
+        pb.redirectError(errFile.toFile());
+        pb.redirectInput(stdin.toFile());
+        Process proc = pb.start();
+        if (!proc.waitFor(120, TimeUnit.SECONDS)) {
+            proc.destroyForcibly();
+            throw new IOException("用例超时（120 秒）：" + script);
+        }
+        byte[] out = Files.readAllBytes(outFile);
+        byte[] err = Files.readAllBytes(errFile);
+        Files.deleteIfExists(outFile);
+        Files.deleteIfExists(errFile);
+        return new Result(proc.exitValue(), out, err);
+    }
+
+    // ---------------- 比对与输出 ----------------
+
+    private static void ok(boolean good, String label, String detail) {
+        total++;
+        if (good) {
+            passed++;
+            System.out.println("  ok   " + label);
+        } else {
+            failures.add(label + " —— " + detail);
+            System.out.println("  FAIL " + label + " —— " + detail);
+        }
+    }
+
+    /**
+     * 逐字节比对（先统一 CRLF→LF）。行尾归一化是防御性的：
+     * 解释器自己只输出 LF（见 Interp 里 print 的实现），但期望文件若被编辑器改成 CRLF 也不该误报。
+     */
+    private static boolean equal(byte[] a, byte[] b) {
+        return text(a).equals(text(b));
+    }
+
+    private static String text(byte[] b) {
+        return new String(b, StandardCharsets.UTF_8).replace("\r\n", "\n");
+    }
+
+    private static String oneLine(byte[] b) {
+        return text(b).trim().replace("\n", " / ");
+    }
+
+    /** 报出第一个不同的行，方便定位。 */
+    private static String diff(byte[] expected, byte[] actual) {
+        String[] e = text(expected).split("\n", -1);
+        String[] a = text(actual).split("\n", -1);
+        for (int i = 0; i < Math.max(e.length, a.length); i++) {
+            String ei = i < e.length ? e[i] : "<没有这一行>";
+            String ai = i < a.length ? a[i] : "<没有这一行>";
+            if (!ei.equals(ai)) {
+                return "第 " + (i + 1) + " 行不同：期望 [" + ei + "] 实际 [" + ai + "]";
+            }
+        }
+        return "内容一致（不应报错）";
+    }
+
+    private static List<Path> listLbx(Path dir) throws IOException {
+        try (Stream<Path> s = Files.list(dir)) {
+            return s.filter(p -> p.getFileName().toString().endsWith(".lbx"))
+                    .sorted()
+                    .toList();
+        }
+    }
+
+    private static String stripExt(Path p) {
+        String s = p.toString();
+        return s.endsWith(".lbx") ? s.substring(0, s.length() - 4) : s;
+    }
+}

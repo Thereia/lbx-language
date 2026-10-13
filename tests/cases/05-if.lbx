@@ -1,0 +1,26 @@
+// 覆盖：if / elif / else 链、嵌套 if、无 else、空分支
+func grade(s)
+    if s >= 90
+        return "A";
+    elif s >= 80
+        return "B";
+    elif s >= 60
+        return "C";
+    else
+        return "D";
+    end
+end
+print(grade(95), grade(85), grade(60), grade(59));
+if 1 > 2
+    print("不会执行");
+end
+if 1 < 2
+    print("外层");
+    if 2 < 3
+        print("内层");
+    end
+end
+if false
+else
+    print("空真分支 + else");
+end

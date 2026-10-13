@@ -1,0 +1,23 @@
+// 覆盖：type 声明、字段默认值、字面量省略字段、字段读写、结构嵌套、引用比较
+type Point = { x = 0, y = 0 };
+p = Point {};
+q = Point { x = 3 };
+r = Point { y = 4, x = 5 };
+print(p, q, r);
+print(q.x, q.y, typeof(q));
+q.x = 30;
+print(q);
+
+type Line = { from = Point {}, to = Point { x = 1, y = 1 } };
+l = Line {};
+print(l);
+print(l.to.x + l.from.y);
+
+s = Line {};
+print(s == l, l == l);
+
+func moveX(pt, dx)
+    pt.x = pt.x + dx;
+    return pt.x;
+end
+print(moveX(q, 5), q);

@@ -38,7 +38,7 @@ public final class Main {
             else files.add(a);
         }
         if (files.size() != 1) {
-            err.println("[LBX 用法错误] 用法：java -cp build lbx.Main [--tokens|--ast] <脚本.lbx>");
+            err.print("[LBX 用法错误] 用法：java -cp build lbx.Main [--tokens|--ast] <脚本.lbx>\n");
             System.exit(2);
             return;
         }
@@ -47,7 +47,7 @@ public final class Main {
         try {
             src = Files.readString(Path.of(files.get(0)), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            err.println("[LBX 用法错误] 读不到脚本文件：" + files.get(0));
+            err.print("[LBX 用法错误] 读不到脚本文件：" + files.get(0) + "\n");
             System.exit(2);
             return;
         }
@@ -55,7 +55,7 @@ public final class Main {
         try {
             List<Token> toks = new Lexer(src).lex();
             if (showTokens) {
-                for (Token t : toks) out.println(tokenLine(t));
+                for (Token t : toks) out.print(tokenLine(t) + "\n");
                 return;
             }
             Node program = new Parser(toks).parseProgram();
@@ -66,10 +66,10 @@ public final class Main {
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
             new Interp(out, in).run(program);
         } catch (LbxError e) {
-            err.println(e.format());
+            err.print(e.format() + "\n");
             System.exit(1);
         } catch (StackOverflowError e) {
-            err.println("[LBX 运行时错误] 求值嵌套过深");
+            err.print("[LBX 运行时错误] 求值嵌套过深\n");
             System.exit(1);
         }
     }
@@ -88,7 +88,7 @@ public final class Main {
         if (n.text != null && !n.text.isEmpty()) b.append(" (").append(n.text).append(')');
         if (n.value != null) b.append(" = ").append(n.value);
         if (!n.names.isEmpty()) b.append(" params=").append(n.names);
-        out.println(b);
+        out.print(b + "\n");
         for (Node k : n.kids) printAst(k, out, depth + 1);
     }
 }

@@ -1,0 +1,33 @@
+// 覆盖：for-in、嵌套遍历、range 三种形式、循环里的 break / continue
+nums = [3, 1, 4];
+for x in nums
+    print("元素 ${x}");
+end
+for p in [[1, 2], [3, 4]]
+    for q in p
+        print(q);
+    end
+end
+for x in range(3)
+    print("range ${x}");
+end
+for x in range(2, 8, 2)
+    print("步长 ${x}");
+end
+for x in range(5, 0, -1)
+    print("倒数 ${x}");
+end
+total = 0;
+for x in nums
+    if x == 1
+        continue;
+    end
+    total = total + x;
+end
+print("跳过 1 的和 = ${total}");
+for x in nums
+    if x == 4
+        break;
+    end
+    print("break 前 ${x}");
+end

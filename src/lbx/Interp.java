@@ -342,7 +342,11 @@ final class Interp {
                 if (i > 0) b.append(' ');
                 b.append(args.get(i).str());     // §8：规则在 Value 里，此处只用 str()
             }
-            out.println(b);
+            // 故意不用 println：PrintStream.println 用的是 System.lineSeparator()，
+            // 在 Windows 上会输出 \r\n，而 §8 要的是确定的一个换行（LF）。
+            // 不固定下来的话，按字节比对的黑盒测试换个平台就全错。
+            out.print(b);
+            out.print('\n');
             return VNull.NIL;
         }));
 

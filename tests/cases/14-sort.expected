@@ -1,0 +1,4 @@
+李四：95
+张三：88
+王五：70
+[Item { name = "李四", score = 95 }, Item { name = "张三", score = 88 }, Item { name = "王五", score = 70 }]

@@ -1,0 +1,10 @@
+// 覆盖：== != < <= > >=、and/or/not、短路求值、不同类型 == 为 false
+print(1 == 1, 1 != 2, 1 == "1", "a" == "a", null == null);
+print(1 < 2, 2 <= 2, 3 > 4, 3 >= 3);
+print("abc" < "abd", "b" > "a");
+print(true and false, true or false, not true);
+print(1 == 1 and 2 > 1, not (1 == 2));
+print(false and 1 / 0 == 0);
+print(true or 1 / 0 == 0);
+a = [1];
+print(a == a, [1] == [1], a != [1]);
