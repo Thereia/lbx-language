@@ -14,10 +14,10 @@
 
 | # | 要求 | 分值 | 产出位置 | 状态 |
 |---|---|---|---|---|
-| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.3，2026-10-13 加入 float） |
+| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.4） |
 | 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `src/test/resources/lbx/`、`src/main/java/lbx/TestRunner.java` | 60 个用例全绿（18 正常 + 40 错误 + 2 命令行），见 `src/test/resources/lbx/README.md` |
 | 3 | 性能测试（LBX vs Python） | 10 | `samples/bench/`、`docs/04-性能测试报告.md` | 3 个基准完成：fib(30) 8.9 倍、循环累加 1.09 倍、排序 2.30 倍 |
-| 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.3 + 入门指南 + 给 Agent 的 Skill 文档（断言全部实跑核对） |
+| 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.4 + 入门指南 468 行 + 给 Agent 的 Skill 文档 523 行（断言全部实跑核对） |
 | 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `samples/app/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、60 个用例回归全绿 |
 
 验收方式：线下讲解 PPT + 实现细节 + 演示 + 答辩。
@@ -53,6 +53,7 @@ print("total = ${total}, p.y = ${p.y}, fib(10) = ${fib(10)}");
 LBX/
 ├─ 作业要求.txt              原始作业要求（勿删）
 ├─ README.md                 本文件：总览、进度、运行方式
+├─ 提交清单.md               交付物8 配套：8 项交付物对照、评分项映射、Git 历史对照、验收命令
 ├─ pom.xml                   Maven 构建：Java 17、UTF-8、运行时零依赖，测试用 JUnit 5
 ├─ docs/                     全部文档
 │  ├─ 00-导读.md             入口：按目的分三条阅读路线（验收主线约 2 小时）
@@ -105,7 +106,7 @@ LBX/
 | M8 | 性能测试与报告（交付物3） | 3 个基准两边输出一致、耗时已实测并写成报告（含启动开销剥离与归因） | 完成 |
 | M9 | 人/AI 开发指南（交付物4）+ 语法文档校订（实现中若发现偏差，升版本并记录） | `docs/02` + `docs/03` 完稿；文档里 25 条具体输出断言逐条实跑核对通过；文档声称"不支持"的 7 种写法逐个验证确实报错 | 完成 |
 | M10 | Agent 用 LBX 开发 ≥200 行应用 + 开发记录（交付物5） | Agent 只凭 `docs/03` 一轮写通 462 行 21 点游戏；独立验证 6 项全过；报回 3 处指南缺口已修补 | 完成 |
-| M11 | PPT 与验收演练（交付物8） | 能逐条讲清实现细节并现场演示 | 待办 |
+| M11 | PPT 与验收演练（交付物8） | `docs/06-系统介绍.md`（14 页大纲 + 逐页讲稿 + 演示脚本 + 追问口径）、`提交清单.md`（8 项交付物对照 + Git 历史对照 + 验收命令） | 完成 |
 
 ## 五、构建与运行
 
@@ -155,18 +156,18 @@ mvn -o -q package                                            # 打成 target/lbx
 
 标准 Maven 布局：源码在 `src/main/java/lbx/`，测试在 `src/test/java/lbx/`，构建产物在 `target/`。
 
-解释器与运行器（`src/main/java/lbx/`，10 个文件 2066 行）：
+解释器与运行器（`src/main/java/lbx/`，10 个文件 2084 行）：
 
 | 文件 | 行数 | 文件 | 行数 |
 |---|---|---|---|
 | `Parser.java` | 582 | `Value.java` | 166 |
 | `Interp.java` | 486 | `Ops.java` | 138 |
 | `Lexer.java` | 267 | `Main.java` | 94 |
-| `TestRunner.java` | 225 | `Node.java` | 53 |
+| `TestRunner.java` | 243 | `Node.java` | 53 |
 | `LbxError.java` | 38 | `Token.java` | 17 |
-| **合计** | | | **2066** |
+| **合计** | | | **2084** |
 
-测试（`src/test/java/lbx/`，5 个文件）分三层：
+测试（`src/test/java/lbx/`，5 个文件 598 行）分三层：
 `LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API，其中 `InterpTest` 还在字节层断言"输出只含 LF"）；
 `MetamorphicTest` 是**蜕变测试**——不写死期望值，只检查"同一计算两种写法结果一致""排序必须非递减、元素不增不减、幂等"这类不变式，因此不受"规格与实现同源"的共模盲点影响；
 `BlackBoxSuiteTest` 调用 `TestRunner` 把 `src/test/resources/lbx/` 下的黑盒用例并进 `mvn test`。
