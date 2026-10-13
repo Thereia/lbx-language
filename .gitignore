@@ -1,0 +1,21 @@
+# 编译产物
+build/
+out/
+*.class
+sources.txt
+
+# 打包产物
+*.jar
+
+# 编辑器 / IDE
+.idea/
+.vscode/
+*.iml
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# 性能测试的临时输出
+bench/*.tmp
+bench/results/
