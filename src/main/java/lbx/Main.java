@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 解释器入口：读脚本 → 词法分析 → 语法分析 → 求值（语法文档 §10）。
  *
- * 用法：java -cp build lbx.Main [--tokens|--ast] &lt;脚本.lbx&gt;
+ * 用法：java -cp target\classes lbx.Main [--tokens|--ast] &lt;脚本.lbx&gt;
  *   --tokens / --ast 是自测与答辩讲解用的开关，正常执行时不打印任何多余内容。
  * 退出码：0 正常；1 词法 / 语法 / 运行时错误；2 命令行用法错误（§10.2）。
  */
@@ -38,7 +38,7 @@ public final class Main {
             else files.add(a);
         }
         if (files.size() != 1) {
-            err.print("[LBX 用法错误] 用法：java -cp build lbx.Main [--tokens|--ast] <脚本.lbx>\n");
+            err.print("[LBX 用法错误] 用法：java -cp target\\classes lbx.Main [--tokens|--ast] <脚本.lbx>\n");
             System.exit(2);
             return;
         }

@@ -1,3 +1,8 @@
+> **目录整理说明（助手补记，不改动本文任何命令）**：本记录写于仓库整理成 Maven 标准布局之前，
+> 因此里面的命令是当时真跑过的原样：`javac -encoding UTF-8 -d build src\lbx\*.java` 与
+> `java -cp build lbx.Main ...`。整理之后源码在 `src\main\java\lbx\`、产物在 `target\classes\`，
+> 等价的命令是 `mvn -o -q compile` 与 `java -cp target\classes lbx.Main ...`。
+> 保留原文是为了让这份记录保持"一手证据"，不被事后改写。
 # blackjack.lbx 开发记录（LBX 命令行小游戏）
 
 - 交付物：`apps/blackjack.lbx`

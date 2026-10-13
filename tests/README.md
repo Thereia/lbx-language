@@ -3,8 +3,15 @@
 作业提交内容第 3 项。**一条命令跑完全部测试**（在仓库根目录执行）：
 
 ```
-javac -encoding UTF-8 -d build src\lbx\*.java
-java -cp build lbx.TestRunner
+mvn -o -q test
+```
+
+`mvn test` 跑两种测试：`src/test/java/lbx/` 下的单元与端到端测试，以及本目录下 55 个黑盒用例
+（由 `BlackBoxSuiteTest` 调用 `TestRunner` 接入）。也可以不经 Maven 单独跑黑盒这一部分：
+
+```
+mvn -o -q compile
+java -cp target\classes lbx.TestRunner
 ```
 
 退出码：0 表示全部通过，1 表示有失败。输出会逐个列出用例，并在最后给汇总与失败清单。
@@ -86,4 +93,4 @@ java -cp build lbx.TestRunner
 1. 在 `cases/`（或 `errors/`）下新建 `名字.lbx`；
 2. 按语法文档手写 `名字.expected`；
 3. 需要标准输入就加 `名字.in`；
-4. 重跑 `java -cp build lbx.TestRunner`。
+4. 重跑 `java -cp target\classes lbx.TestRunner`。

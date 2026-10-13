@@ -22,41 +22,60 @@ import java.util.stream.Stream;
  *   ③ 子进程的退出码（0 正常 / 1 出错 / 2 用法错误）
  * 另有可选的 .in 文件作为子进程的标准输入。
  *
- * 用法：java -cp build lbx.TestRunner [测试目录，默认 tests]
- * 退出码：0 全部通过；1 有失败。
+ * 两种用法：
+ *   命令行：{@code java -cp target/classes lbx.TestRunner [测试目录，默认 tests]}，退出码 0 = 全绿；
+ *   编程调用：{@code TestRunner.runAll(testsDir, childClasspath, out)} 返回失败用例数，
+ *   供 {@code src/test/java} 下的 JUnit 测试把它并入 {@code mvn test}。
+ *   两者都要显式给出「子进程该用哪个 classpath」：surefire 运行时 {@code java.class.path}
+ *   里只有它自己的 booter，拿不到本项目的 classes。
  */
 public final class TestRunner {
 
-    private static final List<String> failures = new ArrayList<>();
-    private static int total = 0;
-    private static int passed = 0;
+    private final Path testsDir;
+    private final String childClasspath;
+    private final PrintStream out;
+    private final String javaBin;
+    private final Path emptyStdin;
 
-    private static String javaBin;
-    private static String classpath;
-    private static Path emptyStdin;
+    private final List<String> failures = new ArrayList<>();
+    private int total = 0;
+    private int passed = 0;
+
+    private TestRunner(Path testsDir, String childClasspath, PrintStream out) throws IOException {
+        this.testsDir = testsDir;
+        this.childClasspath = childClasspath;
+        this.out = out;
+        this.javaBin = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        this.emptyStdin = Files.createTempFile("lbx-empty-stdin", ".bin");
+    }
 
     public static void main(String[] args) throws Exception {
-        // 和 Main 一样：Windows 下 Java 默认字符集是 GBK，不强制 UTF-8 的话
-        // 运行器自己的中文输出在控制台会乱码。
+        // Windows 下 Java 默认字符集是 GBK，不强制 UTF-8 的话运行器自己的中文输出在控制台会乱码。
         PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
         System.setOut(out);
 
         Path testsDir = Path.of(args.length > 0 ? args[0] : "tests").toAbsolutePath();
         if (!Files.isDirectory(testsDir)) {
-            System.out.println("[tests] 找不到测试目录：" + testsDir);
+            out.println("[tests] 找不到测试目录：" + testsDir);
             System.exit(1);
             return;
         }
-        javaBin = Path.of(System.getProperty("java.home"), "bin", "java").toString();
-        classpath = System.getProperty("java.class.path");
-        emptyStdin = Files.createTempFile("lbx-empty-stdin", ".bin");
+        int failed = runAll(testsDir, System.getProperty("java.class.path"), out);
+        System.exit(failed == 0 ? 0 : 1);
+    }
 
-        System.out.println("[tests] 测试目录：" + testsDir);
-        System.out.println("[tests] 解释器：" + javaBin);
-        System.out.println();
+    /** 跑完整个黑盒测试集，返回**失败用例数**（0 表示全绿）。 */
+    static int runAll(Path testsDir, String childClasspath, PrintStream out) throws Exception {
+        return new TestRunner(testsDir, childClasspath, out).run();
+    }
+
+    private int run() throws Exception {
+        out.println("[tests] 测试目录：" + testsDir);
+        out.println("[tests] 解释器：" + javaBin);
+        out.println();
 
         // ---------- 正常用例：退出码 0，stdout 与 .expected 逐字节一致 ----------
-        System.out.println("正常用例（期望退出码 0，stdout 与 .expected 一致）");
+        out.println("正常用例（期望退出码 0，stdout 与 .expected 一致）");
         Path casesDir = testsDir.resolve("cases");
         if (Files.isDirectory(casesDir)) {
             for (Path lbx : listLbx(casesDir)) {
@@ -77,8 +96,8 @@ public final class TestRunner {
         }
 
         // ---------- 错误用例：退出码 1，stderr 与 .expected 一致 ----------
-        System.out.println();
-        System.out.println("错误用例（期望退出码 1，stderr 与 .expected 一致）");
+        out.println();
+        out.println("错误用例（期望退出码 1，stderr 与 .expected 一致）");
         Path errorsDir = testsDir.resolve("errors");
         if (Files.isDirectory(errorsDir)) {
             for (Path lbx : listLbx(errorsDir)) {
@@ -98,8 +117,8 @@ public final class TestRunner {
         }
 
         // ---------- 命令行用例：语法文档 §10.2 的退出码 2 ----------
-        System.out.println();
-        System.out.println("命令行用例（期望退出码 2）");
+        out.println();
+        out.println("命令行用例（期望退出码 2）");
         Result noArg = run(null, emptyStdin);
         ok(noArg.exit() == 2 && text(noArg.err()).startsWith("[LBX 用法错误] 用法："),
                 "cli/不带参数", "退出码=" + noArg.exit() + "；stderr=" + oneLine(noArg.err()));
@@ -110,14 +129,14 @@ public final class TestRunner {
 
         Files.deleteIfExists(emptyStdin);
 
-        System.out.println();
-        System.out.println("[tests] 共 " + total + " 个用例，" + passed + " 通过，" + (total - passed) + " 失败");
+        out.println();
+        out.println("[tests] 共 " + total + " 个用例，" + passed + " 通过，" + (total - passed) + " 失败");
         if (!failures.isEmpty()) {
-            System.out.println();
-            System.out.println("失败清单：");
-            for (String f : failures) System.out.println("  - " + f);
+            out.println();
+            out.println("失败清单：");
+            for (String f : failures) out.println("  - " + f);
         }
-        System.exit(passed == total ? 0 : 1);
+        return total - passed;
     }
 
     // ---------------- 一个用例的执行 ----------------
@@ -125,11 +144,11 @@ public final class TestRunner {
     private record Result(int exit, byte[] out, byte[] err) {}
 
     /** 新起一个 JVM 跑解释器；script 为 null 表示不带脚本参数（测用法错误）。 */
-    private static Result run(Path script, Path stdin) throws Exception {
+    private Result run(Path script, Path stdin) throws Exception {
         Path outFile = Files.createTempFile("lbx-run-out", ".bin");
         Path errFile = Files.createTempFile("lbx-run-err", ".bin");
         List<String> cmd = new ArrayList<>(List.of(
-                javaBin, "-Dfile.encoding=UTF-8", "-cp", classpath, "lbx.Main"));
+                javaBin, "-Dfile.encoding=UTF-8", "-cp", childClasspath, "lbx.Main"));
         if (script != null) cmd.add(script.toString());
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -141,23 +160,23 @@ public final class TestRunner {
             proc.destroyForcibly();
             throw new IOException("用例超时（120 秒）：" + script);
         }
-        byte[] out = Files.readAllBytes(outFile);
-        byte[] err = Files.readAllBytes(errFile);
+        byte[] o = Files.readAllBytes(outFile);
+        byte[] e = Files.readAllBytes(errFile);
         Files.deleteIfExists(outFile);
         Files.deleteIfExists(errFile);
-        return new Result(proc.exitValue(), out, err);
+        return new Result(proc.exitValue(), o, e);
     }
 
     // ---------------- 比对与输出 ----------------
 
-    private static void ok(boolean good, String label, String detail) {
+    private void ok(boolean good, String label, String detail) {
         total++;
         if (good) {
             passed++;
-            System.out.println("  ok   " + label);
+            out.println("  ok   " + label);
         } else {
             failures.add(label + " —— " + detail);
-            System.out.println("  FAIL " + label + " —— " + detail);
+            out.println("  FAIL " + label + " —— " + detail);
         }
     }
 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LBX 语言与解释器 —— Maven 构建配置。
+
+  设计说明：
+  1. 运行时零依赖：解释器只用 JDK 17（sealed / record / instanceof 模式匹配），
+     所以 dependencies 里只有一个 test 作用域的 JUnit 5。
+  2. 全部插件版本都写死：本机 .m2 里这些版本都已存在，因此 `mvn -o` 可以完全离线构建。
+  3. 打包配置了 Main-Class，`mvn package` 产出的 target/lbx.jar 可直接 java -jar 运行。
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>cn.edu.lbx</groupId>
+  <artifactId>lbx-lang</artifactId>
+  <version>1.0</version>
+  <packaging>jar</packaging>
+
+  <name>LBX 语言与解释器</name>
+  <description>解释型通用脚本语言 LBX 及其解释器（编译原理课程大作业）</description>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <junit.version>5.12.2</junit.version>
+  </properties>
+
+  <dependencies>
+    <!-- 唯一的依赖，且只在测试期使用；解释器本身零依赖 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>lbx</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.6</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>lbx.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

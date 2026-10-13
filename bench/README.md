@@ -17,15 +17,15 @@
 ## 运行
 
 ```bat
-javac -encoding UTF-8 -d build src\lbx\*.java
+mvn -o -q compile
 
-java -cp build lbx.Main bench\fib.lbx
+java -cp target\classes lbx.Main bench\fib.lbx
 python bench\fib.py
 
-java -cp build lbx.Main bench\loop.lbx
+java -cp target\classes lbx.Main bench\loop.lbx
 python bench\loop.py
 
-java -cp build lbx.Main bench\sort.lbx
+java -cp target\classes lbx.Main bench\sort.lbx
 python bench\sort.py
 ```
 
@@ -34,7 +34,7 @@ python bench\sort.py
 ```powershell
 $sw = [System.Diagnostics.Stopwatch]::new()
 foreach ($name in @('fib','loop','sort')) {
-    foreach ($pair in @(@('LBX', 'java', @('-cp','build','lbx.Main',"bench/$name.lbx")),
+    foreach ($pair in @(@('LBX', 'java', @('-cp','target\classes','lbx.Main',"bench/$name.lbx")),
                         @('Python', 'python', @("bench/$name.py")))) {
         $label = $pair[0]; $exe = $pair[1]; $argList = $pair[2]
         $best = [double]::MaxValue; $out = ''

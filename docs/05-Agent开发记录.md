@@ -54,11 +54,11 @@ Agent 说"完成了"不算完成，我们逐项自己跑了一遍：
 
 **二、行数。** 亲自统计：总行数 462、空行 38、纯注释行 34、有效代码行 390 —— 满足 ≥200 行，且不是空行凑数。
 
-**三、编译与整局运行。** `javac -encoding UTF-8 -d build src\lbx\*.java` 退出码 0；
+**三、编译与整局运行。** `mvn -o -q compile` 退出码 0；
 用 Agent 记录的输入序列（每局 `1` 选 10 筹码档、`s` 停牌、一个空行继续，最后 `q` 收工）跑一整局：
 
 ```
-(($all -join "`n") + "`n") | java -cp build lbx.Main apps\blackjack.lbx
+(($all -join "`n") + "`n") | java -cp target\classes lbx.Main apps\blackjack.lbx
   → exit=0，输出 99 行
 第 1 局：下注 10，你 16 点，庄家 21 点，庄家黑杰克，盈亏 -10
 第 2 局：下注 10，你 15 点，庄家 24 点，庄家爆牌，盈亏 +10
@@ -78,7 +78,7 @@ Agent 说"完成了"不算完成，我们逐项自己跑了一遍：
 **六、回归。** 跑解释器自己的黑盒测试集：
 
 ```
-java -cp build lbx.TestRunner
+java -cp target\classes lbx.TestRunner
 [tests] 共 55 个用例，55 通过，0 失败
 ```
 
@@ -209,16 +209,16 @@ Agent 报回 3 处缺口，逐条已修补：
 
 ```
 cd E:\code\LBX
-javac -encoding UTF-8 -d build src\lbx\*.java
+mvn -o -q compile
 
 :: 玩一局（每局：下注档位、要牌/停牌、回车继续；q 收工）
-java -cp build lbx.Main apps\blackjack.lbx
+java -cp target\classes lbx.Main apps\blackjack.lbx
 
 :: 不给输入也不会崩（真 0 字节标准输入）
-cmd /c "java -cp build lbx.Main apps\blackjack.lbx < NUL"
+cmd /c "java -cp target\classes lbx.Main apps\blackjack.lbx < NUL"
 
 :: 解释器回归测试
-java -cp build lbx.TestRunner
+java -cp target\classes lbx.TestRunner
 ```
 
 ## 10. 本次交付物清单

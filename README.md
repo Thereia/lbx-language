@@ -15,7 +15,7 @@
 | # | 要求 | 分值 | 产出位置 | 状态 |
 |---|---|---|---|---|
 | 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.1） |
-| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `tests/`、`src/lbx/TestRunner.java` | 53 个用例全绿（17 正常 + 36 错误），见 `tests/README.md` |
+| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `tests/`、`src/main/java/lbx/TestRunner.java` | 53 个用例全绿（17 正常 + 36 错误），见 `tests/README.md` |
 | 3 | 性能测试（LBX vs Python） | 10 | `bench/`、`docs/04-性能测试报告.md` | 3 个基准完成：fib(30) 8.9 倍、循环累加 1.09 倍、排序 2.30 倍 |
 | 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.1 + 入门指南 451 行 + 给 Agent 的 Skill 文档 393 行（断言全部实跑核对） |
 | 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `apps/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、55 个用例回归全绿 |
@@ -52,9 +52,10 @@ print("total = ${total}, p.y = ${p.y}, fib(10) = ${fib(10)}");
 LBX/
 ├─ 作业要求.txt              原始作业要求（勿删）
 ├─ README.md                 本文件：总览、进度、运行方式
+├─ pom.xml                   Maven 构建：Java 17、UTF-8、运行时零依赖，测试用 JUnit 5
 ├─ docs/
 │  ├─ 00-导读.md             入口：按目的分三条阅读路线（验收主线约 2 小时）
-│  ├─ 01-语法规则.md         交付物1：LBX 语法规则（v1.1，权威）
+│  ├─ 01-语法规则.md         交付物1：LBX 语法规则（v1.2，权威）
 │  ├─ 02-开发指南-人.md      交付物4：面向人的入门指南（每条语法都写了设计原因）
 │  ├─ 03-开发指南-AI.md      交付物4：面向编程 Agent 的 Skill 文档（语法卡片 + 错误手册 + 自检清单）
 │  ├─ 04-性能测试报告.md     交付物3：性能测试报告
@@ -62,24 +63,31 @@ LBX/
 │  ├─ 06-系统介绍.md         交付物8：PPT 大纲与讲稿
 │  ├─ 07-实现讲解.md         验收用：逐文件逐方法讲解 + 17 条验收问答
 │  └─ agent-log/             交付物5：Agent 一手开发日志（blackjack-dev-log.md，645 行）
-├─ src/lbx/                  单包平铺（编译只需一行 javac，见 §六）
-│  ├─ Main.java              入口：读文件 → 词法 → 语法 → 求值；错误打印与退出码；--tokens / --ast
-│  ├─ LbxError.java          唯一异常：词法 / 语法 / 运行时三类错误与 §10.3 的消息格式
-│  ├─ Token.java             记号：enum TokenKind + record Token
-│  ├─ Lexer.java             词法分析：字符流 → 记号流（含 ${} 插值的边界切分）
-│  ├─ Node.java              语法树：enum Kind + 单个 Node 类
-│  ├─ Parser.java            语法分析：递归下降 + 优先级爬升；拼装插值表达式
-│  ├─ Value.java             值模型：sealed interface + 8 个实现，每类自带 §8 的 str() / repr()
-│  ├─ Ops.java               §5 运算规则（类型判断、除零、比较、条件检查）集中一处
-│  ├─ Interp.java            求值器：作用域栈、eval、内置函数表、控制流异常
-│  └─ TestRunner.java        黑盒测试运行器：新起 JVM 跑 lbx.Main，比对 stdout / stderr / 退出码
-├─ tests/                    交付物2：黑盒测试集（说明见 tests/README.md）
+├─ src/
+│  ├─ main/java/lbx/         解释器源码（单包 10 个文件）
+│  │  ├─ Main.java           入口：读文件 → 词法 → 语法 → 求值；--tokens / --ast；退出码
+│  │  ├─ LbxError.java       唯一异常：词法 / 语法 / 运行时三类错误与 §10.3 的消息格式
+│  │  ├─ Token.java          记号：enum TokenKind + record Token
+│  │  ├─ Node.java           语法树：enum Kind + 单个 Node 类
+│  │  ├─ Lexer.java          词法分析：字符流 → 记号流（含 ${} 插值的边界切分）
+│  │  ├─ Parser.java         语法分析：递归下降 + 优先级爬升；拼装插值表达式
+│  │  ├─ Value.java          值模型：sealed interface + 8 个实现，每类自带 §8 的 str() / repr()
+│  │  ├─ Ops.java            §5 运算规则（类型判断、除零、比较、条件检查）集中一处
+│  │  ├─ Interp.java         求值器：作用域栈、eval、内置函数表、控制流异常
+│  │  └─ TestRunner.java     黑盒测试运行器：新起 JVM 跑 lbx.Main，比对 stdout / stderr / 退出码
+│  └─ test/java/lbx/         JUnit 测试，随 `mvn test` 一起跑
+│     ├─ LexerTest.java      词法单元测试：记号种类、行列号、关键字优先
+│     ├─ OpsTest.java        §5 规则单元测试：整除、除零、混合类型、引用比较、条件类型
+│     ├─ InterpTest.java     端到端：同进程跑完整链路，断言输出格式、作用域、错误行列号
+│     └─ BlackBoxSuiteTest.java  把 tests/ 下 55 个黑盒用例接入 `mvn test`
+├─ tests/                    交付物2：黑盒测试集（语言层面的符合性数据，说明见 tests/README.md）
 │  ├─ README.md              怎么跑、目录约定、覆盖矩阵
 │  ├─ cases/                 正常用例：名字.lbx + 名字.expected（+ 可选 名字.in）
 │  └─ errors/                错误用例：名字.lbx + 名字.expected（期望 stderr 与退出码 1）
 ├─ bench/                    交付物3：性能测试脚本（lbx + py 同算法同输入，说明见 bench/README.md）
 ├─ apps/                     交付物5：编程 Agent 用 LBX 写的小游戏（blackjack.lbx，462 行）
-└─ examples/                 LBX 语言编写的示例程序（hello / fib / features / guess / demo-*）
+├─ examples/                 LBX 语言编写的示例程序（hello / fib / features / guess / demo-*）
+└─ target/                   Maven 构建产物（不入版本库）
 ```
 
 ## 四、里程碑
@@ -93,30 +101,26 @@ LBX/
 | M4 | 函数：定义/调用/参数/`return`/递归 | `print(fib(20));` → `6765` | 完成 |
 | M5 | 数组、结构类型、下标与字段读写 | 语法文档 §11 的 guess.lbx 跑通 | 完成 |
 | M6 | 错误处理：行列号定位、退出码 | 12 个错误脚本 stderr 格式正确、退出码 1；文件不存在退出码 2 | 完成 |
-| M7 | 黑盒测试集 + 一键运行（交付物2） | 53 个用例一次全绿（`java -cp build lbx.TestRunner`，退出码 0） | 完成 |
+| M7 | 黑盒测试集 + 一键运行（交付物2） | 55 个用例一次全绿（`mvn -o -q test` 或 `java -cp target\classes lbx.TestRunner`，退出码 0） | 完成 |
 | M8 | 性能测试与报告（交付物3） | 3 个基准两边输出一致、耗时已实测并写成报告（含启动开销剥离与归因） | 完成 |
 | M9 | 人/AI 开发指南（交付物4）+ 语法文档校订（实现中若发现偏差，升版本并记录） | `docs/02` + `docs/03` 完稿；文档里 25 条具体输出断言逐条实跑核对通过；文档声称"不支持"的 7 种写法逐个验证确实报错 | 完成 |
 | M10 | Agent 用 LBX 开发 ≥200 行应用 + 开发记录（交付物5） | Agent 只凭 `docs/03` 一轮写通 462 行 21 点游戏；独立验证 6 项全过；报回 3 处指南缺口已修补 | 完成 |
 | M11 | PPT 与验收演练（交付物8） | 能逐条讲清实现细节并现场演示 | 待办 |
 
-## 五、构建与运行（M1 起可用）
+## 五、构建与运行
 
-```bat
-:: 编译解释器与测试运行器（单包平铺，所以一行就够，不需要列文件清单）
-javac -encoding UTF-8 -d build src\lbx\*.java
-
-:: 运行脚本
-java -cp build lbx.Main examples\fib.lbx
-
-:: 自测 / 验收讲解：只看记号流或语法树
-java -cp build lbx.Main --tokens examples\fib.lbx
-java -cp build lbx.Main --ast    examples\fib.lbx
-
-:: 一条命令跑完全部黑盒测试（53 个用例，退出码 0 表示全绿）
-java -cp build lbx.TestRunner
+```powershell
+mvn -o -q compile                                            # 编译（-o = 离线，本机 .m2 已具备全部插件）
+java -cp target\classes lbx.Main examples/features.lbx         # 跑脚本
+java -cp target\classes lbx.Main --tokens examples/demo-tokens.lbx   # 只看记号流
+java -cp target\classes lbx.Main --ast    examples/demo-ast.lbx      # 只看语法树
+mvn -o -q test                                               # 单元测试 + 55 个黑盒用例，一条命令
+java -cp target\classes lbx.TestRunner                       # 不经 Maven 也能直接跑黑盒套件
+mvn -o -q package                                            # 打成 target/lbx.jar（清单里带 Main-Class）
 ```
 
-解释器不依赖任何第三方库，只用 JDK 17 的 `javac` / `java`，也不需要 Maven / Gradle / IDE。
+解释器**运行时零第三方依赖**，只需要 JDK 17；JUnit 5 仅在测试期使用。
+`pom.xml` 里所有插件版本都写死了，所以 `-o` 能完全离线构建；不加 `-o` 也可以，只是 Maven 会联网检查更新。
 
 ## 六、实现架构（M0 定稿）
 
@@ -147,7 +151,11 @@ java -cp build lbx.TestRunner
 | 不做 Visitor / 字节码 / VM | 纯 AST 走树求值 | 与《两周自制脚本语言》Stone 同路线；规格未要求 |
 | Java 17 语言特性使用边界 | 可用 `sealed` / `record` / `instanceof` 模式匹配；**不可用 `switch` 模式匹配**（17 中是预览特性，需 `--enable-preview`） | 避免编译期踩坑 |
 
-### 6.3 实际代码量（10 个文件，1957 行）
+### 6.3 实际代码量与工程结构
+
+标准 Maven 布局：源码在 `src/main/java/lbx/`，测试在 `src/test/java/lbx/`，构建产物在 `target/`。
+
+解释器与运行器（`src/main/java/lbx/`，10 个文件 1957 行）：
 
 | 文件 | 行数 | 文件 | 行数 |
 |---|---|---|---|
@@ -158,7 +166,12 @@ java -cp build lbx.TestRunner
 | `LbxError.java` | 38 | `Token.java` | 17 |
 | **合计** | | | **1957** |
 
-黑盒测试集另有 53 个 `.lbx` 用例（17 正常 + 36 错误），共 405 行 LBX 源码。
+测试（`src/test/java/lbx/`，4 个文件）分两层：
+`LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API），
+`BlackBoxSuiteTest` 调用 `TestRunner` 把 `tests/` 下的黑盒用例并进 `mvn test`。
+黑盒测试集本身是 55 个用例（17 正常 + 36 错误 + 2 个命令行用例），共 405 行 LBX 源码与 53 个 `.expected` 期望文件。
+`TestRunner` 放在 main 而不放 test，是因为它同时是**命令行工具**（`java -cp target\classes lbx.TestRunner`），
+AI 开发指南与文档都直接引用这条命令。
 
 ### 6.4 实现中发现并修掉的两个真 bug（值得写进 PPT）
 

@@ -1,11 +1,13 @@
-# 编译产物
+# Maven 构建产物
+target/
+
+# 旧的手工编译输出（javac -d build）与临时文件
 build/
 out/
-*.class
 sources.txt
 
-# 打包产物
-*.jar
+# 编译出来的 class
+*.class
 
 # 编辑器 / IDE
 .idea/
