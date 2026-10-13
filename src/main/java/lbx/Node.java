@@ -5,7 +5,7 @@ import java.util.List;
 /** 语法树节点种类（语法文档 §12 的文法，每一类节点对应一个 kind）。 */
 enum Kind {
     // 字面量与表达式
-    INT, BOOL, NULL, STR, INTERP,
+    INT, FLOAT, BOOL, NULL, STR, INTERP,
     VAR, BIN, UN, CALL, INDEX, FIELD, ARRAY, STRUCT,
     // 语句与声明
     BLOCK, EXPR, ASSIGN, IF, WHILE, FOR, RETURN, BREAK, CONTINUE, FUNC, TYPE, FIELD_DEF
@@ -15,7 +15,7 @@ enum Kind {
  * 语法树节点：整棵树只用这一个类（形态见 README §6.2）。
  * 各 kind 的字段用法：
  *
- *   INT / BOOL / NULL   value = 值（VInt / VBool / VNull）
+ *   INT / FLOAT / BOOL / NULL   value = 值（VInt / VFloat / VBool / VNull）
  *   STR                 value = VStr
  *   INTERP              kids  = 交替出现的「字面量段 STR」与「表达式节点」
  *   VAR                 text  = 变量名

@@ -166,7 +166,7 @@ final class Interp {
 
     private Value eval(Node n) {
         switch (n.kind) {
-            case INT, BOOL, NULL, STR -> {
+            case INT, FLOAT, BOOL, NULL, STR -> {
                 return (Value) n.value;
             }
             case INTERP -> {
@@ -378,6 +378,14 @@ final class Interp {
             expectArgs("int", args, 1, line);
             Value v = args.get(0);
             if (v instanceof VInt) return v;
+            if (v instanceof VFloat f) {
+                // §9：浮点转整数按向零截断，与整除的截断方向一致
+                double d = f.v();
+                if (d < (double) Long.MIN_VALUE || d >= 9.223372036854776E18) {
+                    throw LbxError.runtime(line, "整数超出范围：" + new VFloat(d).str());
+                }
+                return new VInt((long) d);
+            }
             if (v instanceof VBool b) return new VInt(b.v() ? 1 : 0);
             if (v instanceof VStr s) {
                 String t = s.v().trim();
@@ -391,6 +399,27 @@ final class Interp {
                 throw LbxError.runtime(line, "无法把字符串 \"" + s.v() + "\" 转成整数");
             }
             throw LbxError.runtime(line, "int 不支持 " + v.typeName());
+        }));
+
+        // v1.3 新增：没有它就没办法把 input() 读到的字符串变成小数（§9）
+        g.put("float", new VBuiltin("float", (args, line) -> {
+            expectArgs("float", args, 1, line);
+            Value v = args.get(0);
+            if (v instanceof VFloat) return v;
+            if (v instanceof VInt i) return new VFloat((double) i.v());
+            if (v instanceof VBool b) return new VFloat(b.v() ? 1.0 : 0.0);
+            if (v instanceof VStr s) {
+                String t = s.v().trim();
+                if (t.matches("-?\\d+(\\.\\d+)?")) {
+                    try {
+                        return new VFloat(Double.parseDouble(t));
+                    } catch (NumberFormatException e) {
+                        throw LbxError.runtime(line, "浮点数超出范围：" + t);
+                    }
+                }
+                throw LbxError.runtime(line, "无法把字符串 \"" + s.v() + "\" 转成浮点数");
+            }
+            throw LbxError.runtime(line, "float 不支持 " + v.typeName());
         }));
 
         g.put("str", new VBuiltin("str", (args, line) -> {

@@ -69,4 +69,21 @@ class LexerTest {
         assertEquals("未闭合的块注释", e.getMessage());
         assertEquals(8, e.col);
     }
+
+    @Test
+    void 浮点字面量要求小数点两侧都是数字() {
+        List<Token> t1 = lex("1.5");
+        assertEquals(TokenKind.FLOAT, t1.get(0).kind());
+        assertEquals(1.5, t1.get(0).value());
+        // 1.x 不能当成浮点，否则「整数 1 取字段 x」这种写法会被吃掉
+        List<Token> t2 = lex("1.x");
+        assertEquals(TokenKind.INT, t2.get(0).kind());
+        assertEquals(TokenKind.OP, t2.get(1).kind());
+        assertEquals(".", t2.get(1).text());
+        assertEquals(TokenKind.IDENT, t2.get(2).kind());
+        assertEquals("x", t2.get(2).text());
+        // 1. 与 .5 都不是浮点
+        assertEquals(TokenKind.INT, lex("1.").get(0).kind());
+        assertEquals(TokenKind.OP, lex(".5").get(0).kind());
+    }
 }

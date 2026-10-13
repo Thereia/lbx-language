@@ -332,6 +332,10 @@ final class Parser {
                 next();
                 return lit(Kind.INT, new VInt((Long) t.value()), t.line());
             }
+            case FLOAT: {
+                next();
+                return lit(Kind.FLOAT, new VFloat((Double) t.value()), t.line());
+            }
             case STR: {
                 next();
                 return stringNode(t);

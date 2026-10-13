@@ -80,7 +80,19 @@ final class Lexer {
         int l = line, c0 = col;
         int start = pos;
         while (pos < src.length() && cur() >= '0' && cur() <= '9') next();
+        // 浮点字面量（§3.3，v1.3 加入）：小数点**两侧都必须是数字**。
+        // 这样 1.x 不会被误认成浮点，而是「整数 1 + 字段访问 .x」；也不支持 1. 与 .5。
+        boolean isFloat = false;
+        if (pos < src.length() && cur() == '.' && peek(1) >= '0' && peek(1) <= '9') {
+            isFloat = true;
+            next();                              // 小数点
+            while (pos < src.length() && cur() >= '0' && cur() <= '9') next();
+        }
         String text = src.substring(start, pos);
+        if (isFloat) {
+            out.add(new Token(TokenKind.FLOAT, text, Double.parseDouble(text), l, c0));
+            return;
+        }
         long v;
         try {
             v = Long.parseLong(text);

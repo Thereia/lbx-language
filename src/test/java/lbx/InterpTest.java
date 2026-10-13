@@ -146,4 +146,16 @@ class InterpTest {
         assertEquals(1, e.col);
         assertEquals("期望 ';'，实际遇到 'print'", e.getMessage());
     }
+
+    @Test
+    void 浮点的打印格式与转换() {
+        assertEquals("1.5 2.0\n", run("print(1.5, 2.0);"));
+        assertEquals("3.3333333333333335\n", run("print(10.0 / 3.0);"));
+        assertEquals("3 0.5\n", run("print(10 / 3, 1 / 2.0);"));      // 整除与实数除法的分界
+        assertEquals("float int\n", run("print(typeof(1.5), typeof(1));"));
+        assertEquals("2.5 2\n", run("print(float(\"2.5\"), int(2.9));"));
+        assertEquals("[\"a\", 1.5]\n", run("print([\"a\", 1.5]);"));   // 容器内也用 Double.toString
+        assertEquals("true\n", run("print(1 == 1.0);"));
+        assertEquals("0.25\n", run("print(\"${1.0 / 4.0}\");"));       // 插值里同样是浮点
+    }
 }

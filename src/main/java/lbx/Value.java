@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
  * —— str() 用于容器外层（字符串不加引号），repr() 用于容器内层（字符串带引号）。
  *
  * 用 sealed 接口而不是 java.lang.Object：基本数据类型必须在代码里看得见，
- * 这样 type()、§5 运算规则、§8 打印规则都只需要在一处实现。
+ * 这样 typeof()、§5 运算规则、§8 打印规则都只需要在一处实现。
  */
-sealed interface Value permits VInt, VStr, VBool, VNull, VArray, VStruct, VFunc, VBuiltin {
+sealed interface Value permits VInt, VFloat, VStr, VBool, VNull, VArray, VStruct, VFunc, VBuiltin {
 
-    /** §4 类型名，即内置函数 type(x) 的返回值。 */
+    /** §4 类型名，即内置函数 typeof(x) 的返回值。 */
     String typeName();
 
     /** §8 打印：出现在最外层时用。字符串返回原文本。 */
@@ -27,12 +27,24 @@ sealed interface Value permits VInt, VStr, VBool, VNull, VArray, VStruct, VFunc,
     }
 }
 
-/** 整数。唯一被 §5 认可的数值类型（v1.0 不含浮点）。 */
+/** 整数。§5：两个整数之间的算术保持整数语义（`/` 是整除）。 */
 record VInt(long v) implements Value {
 
     public String typeName() { return "int"; }
 
     public String str() { return Long.toString(v); }
+}
+
+/**
+ * 浮点数（v1.3 加入，见语法文档 §13 第 12 条）。
+ * §8 的打印形式直接用 {@link Double#toString}：它给出「最短且能原样读回」的十进制表示，
+ * 因此 2.0 打印成 {@code 2.0}、1.0/3.0 打印成 {@code 0.3333333333333333}，确定且不丢精度。
+ */
+record VFloat(double v) implements Value {
+
+    public String typeName() { return "float"; }
+
+    public String str() { return Double.toString(v); }
 }
 
 /** 字符串，不可变：拼接产生新串（§4）。 */

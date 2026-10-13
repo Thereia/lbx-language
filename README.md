@@ -14,17 +14,18 @@
 
 | # | 要求 | 分值 | 产出位置 | 状态 |
 |---|---|---|---|---|
-| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.1） |
-| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `src/test/resources/lbx/`、`src/main/java/lbx/TestRunner.java` | 53 个用例全绿（17 正常 + 36 错误），见 `src/test/resources/lbx/README.md` |
+| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.3，2026-10-13 加入 float） |
+| 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `src/test/resources/lbx/`、`src/main/java/lbx/TestRunner.java` | 60 个用例全绿（18 正常 + 40 错误 + 2 命令行），见 `src/test/resources/lbx/README.md` |
 | 3 | 性能测试（LBX vs Python） | 10 | `samples/bench/`、`docs/04-性能测试报告.md` | 3 个基准完成：fib(30) 8.9 倍、循环累加 1.09 倍、排序 2.30 倍 |
-| 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.1 + 入门指南 451 行 + 给 Agent 的 Skill 文档 393 行（断言全部实跑核对） |
-| 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `samples/app/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、55 个用例回归全绿 |
+| 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 三份齐备：语法 v1.3 + 入门指南 + 给 Agent 的 Skill 文档（断言全部实跑核对） |
+| 5 | 编程 Agent 用 LBX 开发 ≥200 行应用 + 开发记录 | 30 | `samples/app/`、`docs/05-Agent开发记录.md`、`docs/agent-log/` | 完成：Agent 只凭 `docs/03` 写出 462 行 21 点游戏（有效代码 390 行），真跑 8 局、真 EOF 不崩、60 个用例回归全绿 |
 
 验收方式：线下讲解 PPT + 实现细节 + 演示 + 答辩。
 
 ## 二、语言速览
 
-语句以 `;` 结束，块以 `end` 收尾；动态类型、无 `var`、整数为唯一数值类型（`/` 为整除）。
+语句以 `;` 结束，块以 `end` 收尾；动态类型、无 `var`；
+数值类型为 `int` 与 `float`，两个整数之间 `/` 是整除，只要出现浮点就按实数运算。
 完整规则见 [docs/01-语法规则.md](docs/01-语法规则.md)。
 
 ```lbx
@@ -76,17 +77,18 @@ LBX/
 │  │  ├─ Node.java           语法树：enum Kind + 单个 Node 类
 │  │  ├─ Lexer.java          词法分析：字符流 → 记号流（含 ${} 插值的边界切分）
 │  │  ├─ Parser.java         语法分析：递归下降 + 优先级爬升
-│  │  ├─ Value.java          值模型：sealed interface + 8 个实现（§8 的 str() / repr() 在各类里）
+│  │  ├─ Value.java          值模型：sealed interface + 9 个实现（§8 的 str() / repr() 在各类里）
 │  │  ├─ Ops.java            §5 运算规则集中一处
 │  │  ├─ Interp.java         求值器：作用域栈、eval、内置函数、控制流异常
 │  │  └─ TestRunner.java     黑盒测试运行器（命令行工具 + 供 JUnit 调用）
 │  └─ test/
 │     ├─ java/lbx/           JUnit 测试 4 个类，随 `mvn test` 一起跑
-│     └─ resources/lbx/      交付物2：黑盒测试集（55 个用例）
+│     └─ resources/lbx/      交付物2：黑盒测试集（60 个用例）
 │        ├─ README.md        覆盖矩阵与目录约定
-│        ├─ cases/           17 个正常用例（.lbx + .expected，可选 .in）
-│        └─ errors/          36 个错误用例（.lbx + .expected）
-└─ target/                   Maven 构建产物（不入版本库）```
+│        ├─ cases/           18 个正常用例（.lbx + .expected，可选 .in）
+│        └─ errors/          40 个错误用例（.lbx + .expected）
+└─ target/                   Maven 构建产物（不入版本库）
+```
 
 ## 四、里程碑
 
@@ -99,7 +101,7 @@ LBX/
 | M4 | 函数：定义/调用/参数/`return`/递归 | `print(fib(20));` → `6765` | 完成 |
 | M5 | 数组、结构类型、下标与字段读写 | 语法文档 §11 的 guess.lbx 跑通 | 完成 |
 | M6 | 错误处理：行列号定位、退出码 | 12 个错误脚本 stderr 格式正确、退出码 1；文件不存在退出码 2 | 完成 |
-| M7 | 黑盒测试集 + 一键运行（交付物2） | 55 个用例一次全绿（`mvn -o -q test` 或 `java -cp target\classes lbx.TestRunner`，退出码 0） | 完成 |
+| M7 | 黑盒测试集 + 一键运行（交付物2） | 60 个用例一次全绿（`mvn -o -q test` 或 `java -cp target\classes lbx.TestRunner`，退出码 0） | 完成 |
 | M8 | 性能测试与报告（交付物3） | 3 个基准两边输出一致、耗时已实测并写成报告（含启动开销剥离与归因） | 完成 |
 | M9 | 人/AI 开发指南（交付物4）+ 语法文档校订（实现中若发现偏差，升版本并记录） | `docs/02` + `docs/03` 完稿；文档里 25 条具体输出断言逐条实跑核对通过；文档声称"不支持"的 7 种写法逐个验证确实报错 | 完成 |
 | M10 | Agent 用 LBX 开发 ≥200 行应用 + 开发记录（交付物5） | Agent 只凭 `docs/03` 一轮写通 462 行 21 点游戏；独立验证 6 项全过；报回 3 处指南缺口已修补 | 完成 |
@@ -112,7 +114,7 @@ mvn -o -q compile                                            # 编译（-o = 离
 java -cp target\classes lbx.Main samples/examples/features.lbx         # 跑脚本
 java -cp target\classes lbx.Main --tokens samples/examples/demo-tokens.lbx   # 只看记号流
 java -cp target\classes lbx.Main --ast    samples/examples/demo-ast.lbx      # 只看语法树
-mvn -o -q test                                               # 单元测试 + 55 个黑盒用例，一条命令
+mvn -o -q test                                               # 单元测试 + 60 个黑盒用例，一条命令
 java -cp target\classes lbx.TestRunner                       # 不经 Maven 也能直接跑黑盒套件
 mvn -o -q package                                            # 打成 target/lbx.jar（清单里带 Main-Class）
 ```
@@ -129,7 +131,7 @@ mvn -o -q package                                            # 打成 target/lbx
 
 | 作业要求原文 | 对应实现 |
 |---|---|
-| 整数，字符串等基本数据类型 | `Value`（sealed interface）+ `VInt` / `VStr` / `VBool` / `VNull`；`typeName()` 即语法文档 §4 类型表 |
+| 整数，字符串等基本数据类型 | `Value`（sealed interface）+ `VInt` / `VFloat` / `VStr` / `VBool` / `VNull`；`typeName()` 即语法文档 §4 类型表 |
 | 数组 | `VArray`（`List<Value>`，下标 0 起、越界报运行时错误、引用语义） |
 | 结构类型 | `type` 声明 → `Map<String, LinkedHashMap<String, Value>>` 存字段默认值；`VStruct`（类型名 + 保序字段表，保序即为 §8 打印顺序） |
 | 基本输入输出 | `VBuiltin` 表中的 `print`（按 §8 走 `str()` / `repr()`）、`input`（读一行去换行，EOF 返回 `null`） |
@@ -140,11 +142,11 @@ mvn -o -q package                                            # 打成 target/lbx
 
 | 决定 | 内容 | 理由 |
 |---|---|---|
-| 值用显式类型，不用 `java.lang.Object` | `sealed interface Value` + 8 个实现 | 「基本数据类型」是作业硬要求，必须在代码里看得见；`typeof()`、§5 运算规则各自只在一个地方实现 |
+| 值用显式类型，不用 `java.lang.Object` | `sealed interface Value` + 9 个实现 | 「基本数据类型」是作业硬要求，必须在代码里看得见；`typeof()`、§5 运算规则各自只在一个地方实现。v1.3 加浮点只动了这一个文件加 `Ops` 的分派，既有用例全部不用改 |
 | 语法树只有 1 个 `Node` 类 | `enum Kind` + 操作数字段 + 子节点表 | 比「Expr/Stmt 各 10 个子类 + Visitor」少写约 500 行样板；`switch (node.kind)` 一处分发，验收好讲 |
 | 表达式用优先级爬升 | 1 张优先级表 + 1 个 `expr(minPrec)` 方法 | 替代 9 个 `or_expr` / `and_expr` / … 方法 |
 | 控制流用异常 | `ReturnEx` / `BreakEx` / `ContinueEx`（关闭栈追踪） | 免去每个语句返回「是否 return/break」标志位 |
-| 不做配对缓冲区 | 整个 `.lbx` 文件一次读成 String，回退即 `i--` | 语法文档 §3 规定「整数禁止浮点」，文件规模为脚本级；配对缓冲区是流式读入才需要的（见词法分析实验） |
+| 不做配对缓冲区 | 整个 `.lbx` 文件一次读成 String，回退即 `i--` | 脚本规模是脚本级（几 KB），配对缓冲区是流式读入才需要的（见词法分析实验） |
 | 不做错误恢复 | 第一个错误即退出（语法文档 §10.3） | 规格如此规定 |
 | 不做 Visitor / 字节码 / VM | 纯 AST 走树求值 | 与《两周自制脚本语言》Stone 同路线；规格未要求 |
 | Java 17 语言特性使用边界 | 可用 `sealed` / `record` / `instanceof` 模式匹配；**不可用 `switch` 模式匹配**（17 中是预览特性，需 `--enable-preview`） | 避免编译期踩坑 |
@@ -153,21 +155,21 @@ mvn -o -q package                                            # 打成 target/lbx
 
 标准 Maven 布局：源码在 `src/main/java/lbx/`，测试在 `src/test/java/lbx/`，构建产物在 `target/`。
 
-解释器与运行器（`src/main/java/lbx/`，10 个文件 1957 行）：
+解释器与运行器（`src/main/java/lbx/`，10 个文件 2066 行）：
 
 | 文件 | 行数 | 文件 | 行数 |
 |---|---|---|---|
-| `Parser.java` | 578 | `Value.java` | 154 |
-| `Interp.java` | 457 | `Ops.java` | 105 |
-| `Lexer.java` | 255 | `Main.java` | 94 |
-| `TestRunner.java` | 206 | `Node.java` | 53 |
+| `Parser.java` | 582 | `Value.java` | 166 |
+| `Interp.java` | 486 | `Ops.java` | 138 |
+| `Lexer.java` | 267 | `Main.java` | 94 |
+| `TestRunner.java` | 225 | `Node.java` | 53 |
 | `LbxError.java` | 38 | `Token.java` | 17 |
-| **合计** | | | **1957** |
+| **合计** | | | **2066** |
 
-测试（`src/test/java/lbx/`，4 个文件）分两层：
+测试（`src/test/java/lbx/`，4 个文件 373 行）分两层：
 `LexerTest` / `OpsTest` / `InterpTest` 是**单元与端到端测试**（同进程直接调解释器内部 API），
 `BlackBoxSuiteTest` 调用 `TestRunner` 把 `src/test/resources/lbx/` 下的黑盒用例并进 `mvn test`。
-黑盒测试集本身是 55 个用例（17 正常 + 36 错误 + 2 个命令行用例），共 405 行 LBX 源码与 53 个 `.expected` 期望文件。
+黑盒测试集本身是 60 个用例（18 正常 + 40 错误 + 2 个命令行用例），共 437 行 LBX 源码与 58 个 `.expected` 期望文件。
 `TestRunner` 放在 main 而不放 test，是因为它同时是**命令行工具**（`java -cp target\classes lbx.TestRunner`），
 AI 开发指南与文档都直接引用这条命令。
 

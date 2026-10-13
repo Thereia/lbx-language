@@ -93,4 +93,38 @@ class OpsTest {
         arr.items.add(new VInt(1));
         assertEquals("[\"a\", 1]", arr.str());                // 容器内用 repr
     }
+
+    @Test
+    void 整数与浮点混合运算按实数进行且结果为浮点() {
+        assertEquals(new VFloat(3.0), Ops.add(new VInt(1), new VFloat(2.0), 1));
+        assertEquals(new VFloat(3.0), Ops.add(new VFloat(1.0), new VInt(2), 1));
+        assertEquals(new VFloat(2.0), Ops.sub(new VFloat(3.0), new VInt(1), 1));
+        assertEquals(new VFloat(5.0), Ops.mul(new VFloat(2.5), new VInt(2), 1));
+        assertEquals(new VFloat(0.5), Ops.mod(new VFloat(2.5), new VFloat(1.0), 1));
+        assertEquals(new VFloat(-1.5), Ops.neg(new VFloat(1.5), 1));
+    }
+
+    @Test
+    void 两个整数相除仍是整除而带浮点就是实数除法() {
+        assertEquals(new VInt(3), Ops.div(new VInt(10), new VInt(3), 1));
+        assertEquals(new VFloat(0.5), Ops.div(new VInt(1), new VFloat(2.0), 1));
+        assertEquals(new VFloat(10.0 / 3.0), Ops.div(new VFloat(10.0), new VInt(3), 1));
+        assertEquals("除零", assertThrows(LbxError.class,
+                () -> Ops.div(new VFloat(1.0), new VFloat(0.0), 1)).getMessage());
+        assertEquals("除零", assertThrows(LbxError.class,
+                () -> Ops.div(new VFloat(1.0), new VInt(0), 1)).getMessage());
+    }
+
+    @Test
+    void 两个数值类型之间按数值比较() {
+        assertTrue(Ops.eq(new VInt(1), new VFloat(1.0)));
+        assertTrue(Ops.eq(new VFloat(2.0), new VInt(2)));
+        assertFalse(Ops.eq(new VInt(1), new VFloat(1.5)));
+        assertTrue(Ops.cmp("<", new VInt(1), new VFloat(1.5), 1));
+        assertTrue(Ops.cmp(">=", new VFloat(2.0), new VInt(2), 1));
+        // 非数值类型之间仍然遵循「类型不同 → false / 报错」
+        assertFalse(Ops.eq(new VFloat(1.0), new VStr("1.0")));
+        assertEquals("运算符 < 不支持 float 和 string", assertThrows(LbxError.class,
+                () -> Ops.cmp("<", new VFloat(1.0), new VStr("a"), 2)).getMessage());
+    }
 }
