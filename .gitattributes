@@ -1,0 +1,9 @@
+# 统一行尾：源码与文档在仓库内一律 LF，Windows 批处理必须是 CRLF
+* text=auto eol=lf
+*.lbx  text eol=lf
+*.md   text eol=lf
+*.java text eol=lf
+*.py   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.txt  text=auto
