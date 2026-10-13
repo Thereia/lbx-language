@@ -1,0 +1,21 @@
+// fib.lbx —— 递归与循环两种写法，也用来当性能测试的基准脚本
+func fib(n)
+    if n < 2
+        return n;
+    end
+    return fib(n - 1) + fib(n - 2);
+end
+
+print("递归 fib(20) = " + str(fib(20)));
+
+// 循环版：同样的第 20 项
+a = 0;
+b = 1;
+i = 0;
+while i < 20
+    t = a + b;
+    a = b;
+    b = t;
+    i = i + 1;
+end
+print("循环第 20 项 = " + str(a));

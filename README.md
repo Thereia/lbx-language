@@ -11,7 +11,7 @@
 
 | # | 要求 | 分值 | 产出位置 | 状态 |
 |---|---|---|---|---|
-| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 语法 v1.0 与实现架构均已定稿；解释器未开工 |
+| 1 | 设计语言 + 实现解释器 | 20 | `docs/01-语法规则.md`、`src/` | 解释器 M1–M6 已完成并实测通过（语法 v1.1） |
 | 2 | 黑盒测试集（用 LBX 写，一条命令跑完） | 20 | `tests/` | 未开工 |
 | 3 | 性能测试（LBX vs Python） | 10 | `bench/`、`docs/04-性能测试报告.md` | 未开工 |
 | 4 | 语法说明 + 给人/AI 的开发指南 | 20 | `docs/01`、`docs/02`、`docs/03` | 未开工 |
@@ -50,7 +50,7 @@ LBX/
 ├─ 作业要求.txt              原始作业要求（勿删）
 ├─ README.md                 本文件：总览、进度、运行方式
 ├─ docs/
-│  ├─ 01-语法规则.md         交付物1：LBX 语法规则（v1.0，已冻结）
+│  ├─ 01-语法规则.md         交付物1：LBX 语法规则（v1.1）
 │  ├─ 02-开发指南-人.md      交付物4：面向人的开发指南
 │  ├─ 03-开发指南-AI.md      交付物4：面向编程 Agent 的 Skill 文档
 │  ├─ 04-性能测试报告.md     交付物3：性能测试报告
@@ -58,36 +58,37 @@ LBX/
 │  ├─ 06-系统介绍.md         交付物8：PPT 大纲与讲稿
 │  └─ agent-log/             交付物5：Agent 会话原始记录
 ├─ src/lbx/                  单包平铺（编译只需一行 javac，见 §六）
-│  ├─ Main.java              入口：读文件 → 词法 → 语法 → 求值；错误打印与退出码
-│  ├─ Token.java             记号：enum Kind + record Token
-│  ├─ Lexer.java             词法分析：字符流 → 记号流
+│  ├─ Main.java              入口：读文件 → 词法 → 语法 → 求值；错误打印与退出码；--tokens / --ast
+│  ├─ LbxError.java          唯一异常：词法 / 语法 / 运行时三类错误与 §10.3 的消息格式
+│  ├─ Token.java             记号：enum TokenKind + record Token
+│  ├─ Lexer.java             词法分析：字符流 → 记号流（含 ${} 插值的边界切分）
 │  ├─ Node.java              语法树：enum Kind + 单个 Node 类
-│  ├─ Parser.java            语法分析：递归下降 + 优先级爬升
-│  ├─ Value.java             值模型：sealed interface + 8 个实现（数据类型）
-│  ├─ Ops.java               §5 运算规则 + §8 打印规则（集中一处）
-│  └─ Interp.java            求值器：作用域栈、eval、内置函数、控制流异常
+│  ├─ Parser.java            语法分析：递归下降 + 优先级爬升；拼装插值表达式
+│  ├─ Value.java             值模型：sealed interface + 8 个实现，每类自带 §8 的 str() / repr()
+│  ├─ Ops.java               §5 运算规则（类型判断、除零、比较、条件检查）集中一处
+│  └─ Interp.java            求值器：作用域栈、eval、内置函数表、控制流异常
 ├─ tests/
 │  ├─ cases/                 正常用例：xxx.lbx + xxx.expected（期望 stdout）
 │  ├─ errors/                错误用例：xxx.lbx + xxx.expected（期望 stderr 片段 + 退出码 1）
-│  └─ run_tests.bat          一条命令跑完全部黑盒测试
+│  └─ run_tests.bat          一条命令跑完全部黑盒测试（M7 提供）
 ├─ bench/                    性能测试：lbx 脚本 + 同功能 python 脚本 + 计时脚本
-└─ examples/                 LBX 语言编写的示例程序（含交付物5 的应用）
+└─ examples/                 LBX 语言编写的示例程序（hello / fib / features / guess）
 ```
 
 ## 四、里程碑
 
 | 里程碑 | 内容 | 验收标准（每步可独立跑通） | 状态 |
 |---|---|---|---|
-| M0 | git 初始化、目录骨架、语法规则 v1.0 定稿、实现架构定稿 | 仓库有历史、文档齐 | 完成 |
-| M1 | Lexer：字符流 → 记号流 | `--tokens` 跑 `print("hi");` 打出 5 个记号，行列号正确 | 待办 |
-| M2 | Parser + AST：优先级爬升、语句、`end` 块 | `--ast` 打印缩进语法树；`if x == 1 … end` 树形状正确 | 待办 |
-| M3 | 求值器：作用域、变量、运算、`print`/`input`、分支循环 | `print(1 + 2 * 3);` → `7`；`print("a" + "b");` → `ab` | 待办 |
-| M4 | 函数：定义/调用/参数/`return`/递归 | `print(fib(20));` → `6765` | 待办 |
-| M5 | 数组、结构类型、下标与字段读写 | 语法文档 §11 的 guess.lbx 跑通 | 待办 |
-| M6 | 错误处理：行列号定位、退出码 | 3 个错误脚本 stderr 格式正确、退出码 1 | 待办 |
+| M0 | git 初始化、目录骨架、语法规则定稿、实现架构定稿 | 仓库有历史、文档齐 | 完成 |
+| M1 | Lexer：字符流 → 记号流 | `--tokens` 跑 `print("hi");` 打出记号，行列号正确 | 完成 |
+| M2 | Parser + AST：优先级爬升、语句、`end` 块 | `--ast` 打印缩进语法树；`if x == 1 … end` 树形状正确 | 完成 |
+| M3 | 求值器：作用域、变量、运算、`print`/`input`、分支循环 | `print(1 + 2 * 3);` → `7`；`print("a" + "b");` → `ab` | 完成 |
+| M4 | 函数：定义/调用/参数/`return`/递归 | `print(fib(20));` → `6765` | 完成 |
+| M5 | 数组、结构类型、下标与字段读写 | 语法文档 §11 的 guess.lbx 跑通 | 完成 |
+| M6 | 错误处理：行列号定位、退出码 | 12 个错误脚本 stderr 格式正确、退出码 1；文件不存在退出码 2 | 完成 |
 | M7 | 黑盒测试集 + 一键运行（交付物2） | `run_tests.bat` 一条命令全绿 | 待办 |
 | M8 | 性能测试与报告（交付物3） | LBX 与 Python 同功能脚本计时，报告出表 | 待办 |
-| M9 | 人/AI 开发指南（交付物4）+ 语法文档校订（实现中若发现偏差，升 v1.1 并记录） | Agent 照 AI 指南能独立写出 LBX 代码 | 待办 |
+| M9 | 人/AI 开发指南（交付物4）+ 语法文档校订（实现中若发现偏差，升版本并记录） | Agent 照 AI 指南能独立写出 LBX 代码 | 待办 |
 | M10 | Agent 用 LBX 开发 ≥200 行应用 + 开发记录（交付物5） | 应用 ≥200 行 LBX 且可运行，开发记录留档 | 待办 |
 | M11 | PPT 与验收演练（交付物8） | 能逐条讲清实现细节并现场演示 | 待办 |
 
@@ -99,10 +100,12 @@ javac -encoding UTF-8 -d build src\lbx\*.java
 
 :: 运行脚本
 java -cp build lbx.Main examples\fib.lbx
-java -cp build lbx.Main --tokens examples\fib.lbx   :: 调试：只看记号流
-java -cp build lbx.Main --ast    examples\fib.lbx   :: 调试：只看语法树
 
-:: 一条命令跑完全部黑盒测试
+:: 自测 / 验收讲解：只看记号流或语法树
+java -cp build lbx.Main --tokens examples\fib.lbx
+java -cp build lbx.Main --ast    examples\fib.lbx
+
+:: 一条命令跑完全部黑盒测试（M7 提供）
 run_tests.bat
 ```
 
@@ -128,7 +131,7 @@ run_tests.bat
 
 | 决定 | 内容 | 理由 |
 |---|---|---|
-| 值用显式类型，不用 `java.lang.Object` | `sealed interface Value` + 8 个实现 | 「基本数据类型」是作业硬要求，必须在代码里看得见；`type()`、§5 运算规则、§8 打印规则各自只在一个地方实现 |
+| 值用显式类型，不用 `java.lang.Object` | `sealed interface Value` + 8 个实现 | 「基本数据类型」是作业硬要求，必须在代码里看得见；`typeof()`、§5 运算规则各自只在一个地方实现 |
 | 语法树只有 1 个 `Node` 类 | `enum Kind` + 操作数字段 + 子节点表 | 比「Expr/Stmt 各 10 个子类 + Visitor」少写约 500 行样板；`switch (node.kind)` 一处分发，验收好讲 |
 | 表达式用优先级爬升 | 1 张优先级表 + 1 个 `expr(minPrec)` 方法 | 替代 9 个 `or_expr` / `and_expr` / … 方法 |
 | 控制流用异常 | `ReturnEx` / `BreakEx` / `ContinueEx`（关闭栈追踪） | 免去每个语句返回「是否 return/break」标志位 |
@@ -137,9 +140,24 @@ run_tests.bat
 | 不做 Visitor / 字节码 / VM | 纯 AST 走树求值 | 与《两周自制脚本语言》Stone 同路线；规格未要求 |
 | Java 17 语言特性使用边界 | 可用 `sealed` / `record` / `instanceof` 模式匹配；**不可用 `switch` 模式匹配**（17 中是预览特性，需 `--enable-preview`） | 避免编译期踩坑 |
 
-### 6.3 代码量估算
+### 6.3 实际代码量（9 个文件，1747 行）
 
-单包 8 个文件，合计约 **1150–1350 行**（`Value` ~150、`Lexer` ~180、`Parser` ~300、`Interp` ~400、`Node` ~60、`Ops` ~120、`Token` ~40、`Main` ~50）。
+| 文件 | 行数 | 文件 | 行数 |
+|---|---|---|---|
+| `Parser.java` | 578 | `Value.java` | 154 |
+| `Interp.java` | 453 | `Ops.java` | 105 |
+| `Lexer.java` | 255 | `Main.java` | 94 |
+| `Node.java` | 53 | `LbxError.java` | 38 |
+| `Token.java` | 17 | **合计** | **1747** |
+
+比 M0 估算的 1150–1350 行多，主要多在：`${}` 插值（词法要数括号深度并跳过嵌套字符串、语法要拆段并递归解析片段）与逐条注释。
+
+### 6.4 实现中发现并修掉的两个真 bug（值得写进 PPT）
+
+| # | 现象 | 原因 | 修法 |
+|---|---|---|---|
+| 1 | `print("${"内层字符串"}")` 报「非法字符」 | 词法分析器切字符串时不知道 `${}` 内部是表达式，把内层字符串的引号当成了外层字符串的结束引号 | `string()` 进入 `${` 后维护括号深度，并整段跳过片段里的嵌套字符串；同时把内置函数 `type` 改名为 `typeof`（它与关键字 `type` 撞名，本就无法调用），升语法文档 v1.1 |
+| 2 | `func judge(...)` 里用了 `elif`，后面 `func main` 报「定义只能出现在最外层」 | `elif` 递归解析时内层 `ifStmt()` 已消费结尾的 `end`，外层又 `expectKeyword("end")`，把函数自己的 `end` 抢走 | `elif` 分支直接返回，不再要求第二个 `end` |
 
 ## 七、实现要点备忘
 

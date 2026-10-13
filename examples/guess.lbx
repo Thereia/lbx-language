@@ -1,0 +1,34 @@
+// guess.lbx —— 语法文档 §11 的示例：输入输出、分支循环、函数、数组、结构、插值
+// 运行：echo 10 | java -cp build lbx.Main examples/guess.lbx
+type Record = { name = "", score = 0 };
+
+func judge(guess, answer)
+    if guess == answer
+        return "正确";
+    elif guess < answer
+        return "偏小";
+    else
+        return "偏大";
+    end
+end
+
+func main()
+    answer = 42;
+    history = [];
+    tries = 0;
+    while tries < 5
+        guess = int(input("请输入数字："));
+        tries = tries + 1;
+        push(history, guess);
+        result = judge(guess, answer);
+        print("第 ${tries} 次：${guess} → ${result}");
+        if result == "正确"
+            r = Record { name = "玩家", score = 5 - tries };
+            print("猜中！得分 ${r.score}，历史 ${str(history)}");
+            return;
+        end
+    end
+    print("机会用尽，答案是 ${answer}");
+end
+
+main();

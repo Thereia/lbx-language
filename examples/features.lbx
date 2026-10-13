@@ -1,0 +1,53 @@
+// features.lbx —— 逐条覆盖作业要求的 5 项基本功能
+// 运行：java -cp build lbx.Main examples/features.lbx
+
+// 1) 整数、字符串等基本数据类型
+n = 42;
+s = "LBX";
+b = true;
+nothing = null;
+print("基本类型：int=" + str(n) + " string=" + s + " bool=" + str(b) + " null=" + str(nothing));
+print("typeof() 依次是：" + typeof(n) + " " + typeof(s) + " " + typeof(b) + " " + typeof(nothing));
+
+// 2) 数组与结构类型
+type Point = { x = 0, y = 0 };
+p = Point { x = 3 };
+nums = [5, 2, 9, 2, 7];
+print("结构：" + str(p) + "（y 取了默认值 0）");
+print("数组：" + str(nums) + "，长度 " + str(len(nums)));
+
+// 3) 基本输入输出：这里只用输出，输入示例见 examples/guess.lbx
+print("开始分支循环演示：");
+
+// 4) 分支循环控制
+i = 1;
+while i <= 5
+    if i % 2 == 0
+        print(str(i) + " 是偶数");
+    else
+        print(str(i) + " 是奇数");
+    end
+    i = i + 1;
+end
+
+total = 0;
+for x in nums
+    total = total + x;
+end
+print("数组求和 = " + str(total));
+
+// 5) 函数定义与调用（含递归、参数按值传递）
+func maxOf(a, b)
+    if a > b
+        return a;
+    end
+    return b;
+end
+
+print("maxOf(3, 9) = " + str(maxOf(3, 9)));
+
+// 附：字符串插值、内置函数、数组与结构的写操作
+push(nums, 100);
+p.y = p.x * 2;
+print("追加后数组 ${nums}，p.y=${p.y}，range(3)=${range(3)}");
+print("排序前 ${nums}，pop 出来的是 ${pop(nums)}");
