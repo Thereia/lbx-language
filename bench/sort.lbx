@@ -1,0 +1,30 @@
+// 基准 3：冒泡排序 4000 个整数 —— 衡量数组下标读写的开销
+// 运行：java -cp build lbx.Main bench/sort.lbx
+func bubble(a)
+    n = len(a);
+    i = 0;
+    while i < n - 1
+        j = 0;
+        while j < n - 1 - i
+            if a[j] > a[j + 1]
+                t = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = t;
+            end
+            j = j + 1;
+        end
+        i = i + 1;
+    end
+    return a;
+end
+
+// 倒序数组，保证两种语言的输入完全一致（不用随机数）
+n = 4000;
+a = [];
+i = n;
+while i > 0
+    push(a, i);
+    i = i - 1;
+end
+bubble(a);
+print(a[0], a[len(a) - 1]);

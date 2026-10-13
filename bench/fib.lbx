@@ -1,0 +1,9 @@
+// 基准 1：递归 fib(30) —— 衡量函数调用与递归的开销
+// 运行：java -cp build lbx.Main bench/fib.lbx
+func fib(n)
+    if n < 2
+        return n;
+    end
+    return fib(n - 1) + fib(n - 2);
+end
+print(fib(30));
